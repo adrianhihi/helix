@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HELIX — Isometric Lab Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --amber: #f0a030;
+    --green: #4ade80;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --teal: #2dd4bf;
+    --bg: #080a0f;
+    --card: rgba(255,255,255,0.035);
+    --border: rgba(255,255,255,0.07);
+    --text: #c8cad0;
+    --text-dim: #5a5e6a;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Outfit', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0e1a;
+    color: var(--text);
+    font-family: var(--mono);
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ── Header ────────────────────────── */
+  #header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: #0d1224;
+    border-bottom: 1px solid #1a2040;
+    position: sticky; top: 0; z-index: 100;
+  }
+  #header h1 { font-family: var(--sans); font-size: 14px; color: var(--amber); letter-spacing: 2px; font-weight: 700; }
+  #header .status { font-size: 11px; color: var(--teal); }
+  #header .nav-links { display: flex; gap: 12px; }
+  #header .nav-links a { font-size: 10px; color: var(--text-dim); text-decoration: none; transition: color .2s; }
+  #header .nav-links a:hover { color: var(--amber); }
+
+  /* ── Canvas section ────────────────── */
+  #canvas-wrap {
+    height: 45vh;
+    min-height: 320px;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    background: #080a12;
+  }
+  #canvas-wrap:active { cursor: grabbing; }
+  canvas { display: block; }
+
+  /* ── Controls bar ──────────────────── */
+  #controls {
+    background: #0d1224;
+    border-top: 1px solid #1a2040;
+    border-bottom: 1px solid #1a2040;
+    padding: 6px 12px;
+  }
+  .btn-row { display: flex; gap: 4px; margin-bottom: 4px; flex-wrap: wrap; align-items: center; }
+  .btn-row label { font-size: 10px; color: #666; margin-right: 4px; min-width: 50px; }
+  .btn {
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border: 1px solid #2a3050; background: #151b30; color: #c0c0c0;
+    cursor: pointer; border-radius: 2px; transition: all 0.15s;
+  }
+  .btn:hover { background: #1e2845; border-color: var(--amber); color: #fff; }
+  .btn:active { transform: scale(0.96); }
+  .tag { font-size: 8px; padding: 1px 3px; border-radius: 2px; margin-left: 2px; }
+  .tag-live { background: #2d6a4f; color: #95d5b2; }
+  .tag-mock { background: #1d3557; color: #a8dadc; }
+  .tag-vision { background: #3c1361; color: #c77dff; }
+  #stats-bar { display: flex; gap: 16px; font-size: 11px; padding: 4px 0; }
+  #stats-bar .stat { color: #888; }
+  #stats-bar .stat b { color: var(--amber); }
+  #gene-bar { display: flex; gap: 3px; align-items: center; padding: 2px 0; min-height: 18px; }
+  .gene-pill {
+    display: inline-block; width: 14px; height: 10px; border-radius: 2px;
+    background: #2d6a4f; border: 1px solid #40916c;
+    font-size: 7px; line-height: 10px; text-align: center; color: #95d5b2;
+  }
+  #event-log { font-size: 10px; color: var(--teal); padding: 2px 0; height: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .cam-btn { font-size: 12px; width: 24px; height: 24px; text-align: center; line-height: 22px; padding: 0; }
+
+  /* ── Detail Panel ──────────────────── */
+  #detail-panel {
+    background: var(--bg);
+    padding: 20px 24px 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .panel-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .panel-section.full-width { grid-column: 1 / -1; }
+  .section-label {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  /* ── A: PCEC Timeline ──────────────── */
+  #pcec-detail { grid-column: 1 / -1; }
+  .pcec-timeline { display: flex; flex-direction: column; gap: 0; position: relative; padding-left: 28px; }
+  .pcec-step {
+    position: relative; padding: 10px 0 10px 20px;
+    border-left: 2px solid rgba(255,255,255,0.06);
+    opacity: 0.3; transition: opacity 0.4s;
+  }
+  .pcec-step.active { opacity: 1; }
+  .pcec-step.done { opacity: 0.85; }
+  .pcec-step .step-dot {
+    position: absolute; left: -28px; top: 12px;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #000;
+    background: #2a2d38; border: 2px solid #3a3d48;
+    transition: all 0.3s; z-index: 2;
+  }
+  .pcec-step.active .step-dot { background: var(--amber); border-color: var(--amber); box-shadow: 0 0 12px rgba(240,160,48,0.5); }
+  .pcec-step.done .step-dot { background: var(--green); border-color: var(--green); box-shadow: 0 0 8px rgba(74,222,128,0.3); }
+  .pcec-step.skipped .step-dot { background: var(--purple); border-color: var(--purple); }
+  .pcec-step.skipped { opacity: 0.6; }
+  .step-title { font-family: var(--sans); font-weight: 700; font-size: 13px; color: #e0e0e0; margin-bottom: 4px; }
+  .step-body { font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+  .step-body .code { color: var(--amber); }
+  .step-body .highlight { color: var(--green); }
+  .skipped-msg { color: var(--purple); font-style: italic; }
+
+  /* Candidate cards inside Construct */
+  .candidates { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .cand-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; flex: 1; min-width: 180px;
+    transition: all 0.3s; opacity: 0.6;
+  }
+  .cand-card.winner { border-color: var(--green); opacity: 1; box-shadow: 0 0 12px rgba(74,222,128,0.08); }
+  .cand-name { font-size: 11px; font-weight: 600; color: #ddd; margin-bottom: 4px; }
+  .cand-desc { font-size: 9px; color: var(--text-dim); margin-bottom: 6px; }
+  .cand-meta { display: flex; gap: 10px; font-size: 9px; color: var(--text-dim); flex-wrap: wrap; }
+  .cand-meta span b { color: var(--text); font-weight: 600; }
+  .gene-hit-indicator {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--green);
+    margin-right: 3px; vertical-align: middle;
+  }
+  .score-bar-wrap { height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; background: var(--amber); }
+  .cand-card.winner .score-bar-fill { background: var(--green); }
+  .score-label { font-size: 9px; color: var(--text-dim); margin-top: 2px; text-align: right; }
+
+  /* Result banner */
+  #result-banner {
+    margin-top: 12px; padding: 10px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; display: none;
+    font-family: var(--sans);
+  }
+  #result-banner.success { display: block; background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); color: var(--green); }
+  #result-banner.immune { display: block; background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.2); color: var(--purple); }
+
+  /* ── B: Agent Wallet ───────────────── */
+  #wallet-section .coins { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+  .coin {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 8px;
+    background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+    transition: all 0.4s;
+  }
+  .coin .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .coin .sym { font-size: 11px; font-weight: 600; color: #ccc; }
+  .coin .bal { font-size: 12px; font-weight: 700; color: #fff; margin-left: 4px; transition: color 0.3s; }
+  .coin.flash-green .bal { color: var(--green); }
+  .coin.flash-red .bal { color: var(--red); }
+  .wallet-addr { font-size: 10px; color: var(--text-dim); margin-top: 8px; }
+
+  /* ── C: Gene Map Timeline ──────────── */
+  #gene-timeline-section { grid-column: 1 / -1; }
+  #gene-timeline {
+    display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 4px;
+    scrollbar-width: thin; scrollbar-color: #2a2d38 transparent;
+  }
+  .gene-pill-detail {
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 10px; border-radius: 20px;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    white-space: nowrap; flex-shrink: 0;
+    animation: popIn 0.3s ease;
+  }
+  @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .gene-pill-detail .fail { font-size: 10px; color: var(--amber); font-weight: 600; }
+  .gene-pill-detail .arrow { font-size: 9px; color: var(--text-dim); }
+  .gene-pill-detail .fix { font-size: 10px; color: var(--green); font-weight: 600; }
+  .gene-badge {
+    font-size: 10px; font-weight: 700; padding: 4px 10px;
+    border-radius: 20px; background: rgba(167,139,250,0.12);
+    border: 1px solid rgba(167,139,250,0.2); color: var(--purple);
+    flex-shrink: 0;
+  }
+
+  /* ── D: Before/After ───────────────── */
+  #comparison { grid-column: 1 / -1; }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .compare-col {
+    border-radius: 8px; padding: 14px; border: 1px solid var(--border);
+  }
+  .compare-col.before { background: rgba(248,113,113,0.04); border-color: rgba(248,113,113,0.15); }
+  .compare-col.after { background: rgba(74,222,128,0.04); border-color: rgba(74,222,128,0.15); }
+  .compare-col h3 {
+    font-family: var(--sans); font-size: 12px; font-weight: 700;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .compare-col.before h3 { color: var(--red); }
+  .compare-col.after h3 { color: var(--green); }
+  .compare-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .compare-row:last-child { border-bottom: none; }
+  .compare-row .label { color: var(--text-dim); }
+  .compare-row .value { font-weight: 600; }
+  .compare-col.before .value { color: var(--red); }
+  .compare-col.after .value { color: var(--green); }
+
+  /* ── E: Vision Cards ───────────────── */
+  .vision-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; grid-column: 1 / -1; }
+  .vision-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+  }
+  .vision-card h3 { font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--purple); margin-bottom: 8px; }
+  .vision-card .flow {
+    display: flex; align-items: center; gap: 6px; font-size: 11px;
+    flex-wrap: wrap; margin-top: 6px;
+  }
+  .flow-node {
+    padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 10px;
+    border: 1px solid var(--border);
+  }
+  .flow-node.ok { background: rgba(74,222,128,0.08); color: var(--green); border-color: rgba(74,222,128,0.2); }
+  .flow-node.fail { background: rgba(248,113,113,0.08); color: var(--red); border-color: rgba(248,113,113,0.2); }
+  .flow-node.fix { background: rgba(240,160,48,0.08); color: var(--amber); border-color: rgba(240,160,48,0.2); }
+  .flow-arrow { color: var(--text-dim); font-size: 12px; }
+  .vision-tag { font-size: 8px; padding: 2px 6px; border-radius: 10px; background: rgba(167,139,250,0.15); color: var(--purple); margin-left: 6px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>HELIX LAB</h1>
+  <div class="nav-links">
+    <a href="/docs">Docs</a>
+    <a href="/benchmark">Benchmark</a>
+    <a href="/milestone">Milestone</a>
+    <a href="https://github.com/adrianhihi/helix" target="_blank">GitHub</a>
+  </div>
+  <span class="status" id="conn-status">STANDALONE</span>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="lab"></canvas>
+</div>
+
+<div id="controls">
+  <div class="btn-row">
+    <label>TEMPO:</label>
+    <button class="btn" onclick="inject(0)">1 Low Balance <span class="tag tag-live">LIVE</span></button>
+    <button class="btn" onclick="inject(1)">2 Session Exp <span class="tag tag-live">LIVE</span></button>
+    <button class="btn" onclick="inject(2)">3 Currency <span class="tag tag-live">LIVE</span></button>
+    <button class="btn" onclick="inject(3)">4 Signature <span class="tag tag-live">LIVE</span></button>
+    <button class="btn" onclick="inject(4)">5 Batch Revert <span class="tag tag-live">LIVE</span></button>
+    <button class="btn" onclick="inject(5)">6 Svc Down <span class="tag tag-mock">MOCK</span></button>
+    <button class="btn" onclick="inject(6)">7 DEX Slip <span class="tag tag-mock">MOCK</span></button>
+    <button class="btn" onclick="inject(7)">8 Compliance <span class="tag tag-mock">MOCK</span></button>
+    <button class="btn" onclick="inject(8)">9 Cascade <span class="tag tag-vision">VISION</span></button>
+    <button class="btn" onclick="inject(9)">10 Off-Ramp <span class="tag tag-vision">VISION</span></button>
+    <button class="btn" onclick="inject(10)">11 Token Pause <span class="tag tag-mock">MOCK</span></button>
+    <button class="btn" onclick="inject(11)">12 Sponsor Empty <span class="tag tag-mock">MOCK</span></button>
+    <button class="btn" onclick="inject(12)">13 Network <span class="tag" style="background:#dc2626;color:#fff">REAL</span></button>
+    <button class="btn cam-btn" onclick="camRotate(-1)">&#8634;</button>
+    <button class="btn cam-btn" onclick="camRotate(1)">&#8635;</button>
+  </div>
+  <div class="btn-row">
+    <label>PRIVY:</label>
+    <button class="btn" style="border-color:#3b82f6" onclick="inject(13)">14 Policy Limit <span class="tag" style="background:#1e40af;color:#93c5fd">PRIVY</span></button>
+    <button class="btn" style="border-color:#3b82f6" onclick="inject(14)">15 Nonce Desync <span class="tag" style="background:#1e40af;color:#93c5fd">PRIVY</span></button>
+    <button class="btn" style="border-color:#3b82f6" onclick="inject(15)">16 Gas Sponsor <span class="tag" style="background:#1e40af;color:#93c5fd">PRIVY</span></button>
+    <button class="btn" style="border-color:#3b82f6" onclick="inject(16)">17 Cross-Chain <span class="tag" style="background:#1e40af;color:#93c5fd">PRIVY</span></button>
+    <label style="margin-left:8px">GENERIC:</label>
+    <button class="btn" style="border-color:#666" onclick="inject(17)">18 Rate Limit <span class="tag" style="background:#444;color:#aaa">HTTP</span></button>
+    <button class="btn" style="border-color:#666" onclick="inject(18)">19 Server 500 <span class="tag" style="background:#444;color:#aaa">HTTP</span></button>
+    <button class="btn" style="border-color:#666" onclick="inject(19)">20 Timeout <span class="tag" style="background:#444;color:#aaa">HTTP</span></button>
+  </div>
+  <div class="btn-row">
+    <label>GENES:</label>
+    <div id="gene-bar"></div>
+  </div>
+  <div id="stats-bar">
+    <span class="stat">Platforms: <b id="s-plat">4</b></span>
+    <span class="stat">Failures: <b id="s-fail">0</b></span>
+    <span class="stat">Repaired: <b id="s-repair">0</b></span>
+    <span class="stat">Revenue: <b id="s-rev">$0</b></span>
+    <span class="stat">Capsules: <b id="s-gene">0</b></span>
+    <span class="stat">Immune: <b id="s-immune">0</b></span>
+    <span class="stat">Cross-Platform: <b id="s-xplat" style="color:var(--teal)">0</b></span>
+    <span class="stat" id="pcec-safety">PCEC: <b style="color:var(--green)">SAFE</b></span>
+  </div>
+  <div id="event-log">Ready. Click an inject button to trigger a failure scenario.</div>
+</div>
+
+<!-- ════════ Detail Panel ════════ -->
+<div id="detail-panel">
+
+  <!-- A: PCEC Timeline -->
+  <div id="pcec-detail" class="panel-section full-width">
+    <div class="section-label">PCEC Repair Detail</div>
+    <div class="pcec-timeline" id="pcec-timeline">
+      <div class="pcec-step" id="step-p">
+        <div class="step-dot">P</div>
+        <div class="step-title">Perceive</div>
+        <div class="step-body" id="step-p-body">Waiting for failure injection...</div>
+      </div>
+      <div class="pcec-step" id="step-c">
+        <div class="step-dot">C</div>
+        <div class="step-title">Construct</div>
+        <div class="step-body" id="step-c-body">—</div>
+      </div>
+      <div class="pcec-step" id="step-e">
+        <div class="step-dot">E</div>
+        <div class="step-title">Evaluate</div>
+        <div class="step-body" id="step-e-body">—</div>
+      </div>
+      <div class="pcec-step" id="step-k">
+        <div class="step-dot">C</div>
+        <div class="step-title">Commit</div>
+        <div class="step-body" id="step-k-body">—</div>
+      </div>
+    </div>
+    <div id="result-banner"></div>
+  </div>
+
+  <!-- B: Agent Wallet -->
+  <div id="wallet-section" class="panel-section">
+    <div class="section-label">Agent Wallet</div>
+    <div class="coins">
+      <div class="coin" id="coin-usdc"><span class="dot" style="background:var(--green)"></span><span class="sym">USDC</span><span class="bal" id="bal-usdc">0.02</span></div>
+      <div class="coin" id="coin-eurc"><span class="dot" style="background:var(--blue)"></span><span class="sym">EURC</span><span class="bal" id="bal-eurc">5.00</span></div>
+      <div class="coin" id="coin-usdt"><span class="dot" style="background:var(--purple)"></span><span class="sym">USDT</span><span class="bal" id="bal-usdt">1.50</span></div>
+      <div class="coin" id="coin-pyusd"><span class="dot" style="background:#e91e8c"></span><span class="sym">PYUSD</span><span class="bal" id="bal-pyusd">0.00</span></div>
+    </div>
+    <div class="wallet-addr">0x7a3b...f2c1</div>
+  </div>
+
+  <!-- E: Vision Cards (placed beside wallet) -->
+  <div class="panel-section">
+    <div class="section-label">Phase 2 Vision</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px;font-family:var(--sans);">Cascading Multi-Agent Failure <span class="vision-tag">VISION</span></div>
+        <div class="flow">
+          <span class="flow-node ok">Agent A</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-node ok">Agent B</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-node fail">Agent C &times;</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-node fix">PCEC</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-node ok">Refund C&rarr;B&rarr;A</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px;font-family:var(--sans);">Off-Ramp Recovery <span class="vision-tag">VISION</span></div>
+        <div class="flow">
+          <span class="flow-node ok">On-chain &check;</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-node fail">Bank &times;</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-node fix">PCEC</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-node ok">Alt ramp &check;</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C: Gene Map Timeline -->
+  <div id="gene-timeline-section" class="panel-section full-width">
+    <div class="section-label">Gene Map Timeline</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="gene-badge" id="gene-count-badge">0 GENES</span>
+      <div id="gene-timeline"></div>
+    </div>
+  </div>
+
+  <!-- D: Before/After -->
+  <div id="comparison" class="panel-section full-width">
+    <div class="section-label">Impact Comparison</div>
+    <div class="compare-grid">
+      <div class="compare-col before">
+        <h3><span style="font-size:14px;">&#10060;</span> Without Helix</h3>
+        <div class="compare-row"><span class="label">Payment failures</span><span class="value" id="cmp-fail-before">0</span></div>
+        <div class="compare-row"><span class="label">Human interventions</span><span class="value" id="cmp-human">0</span></div>
+        <div class="compare-row"><span class="label">Mean time to repair</span><span class="value">~18 min</span></div>
+        <div class="compare-row"><span class="label">Revenue lost</span><span class="value" id="cmp-lost">$0</span></div>
+        <div class="compare-row"><span class="label">Recurring errors</span><span class="value">Every time</span></div>
+      </div>
+      <div class="compare-col after">
+        <h3><span style="font-size:14px;">&#9889;</span> With Helix SDK</h3>
+        <div class="compare-row"><span class="label">Auto-repaired</span><span class="value" id="cmp-fixed">0</span></div>
+        <div class="compare-row"><span class="label">Human interventions</span><span class="value">0</span></div>
+        <div class="compare-row"><span class="label">Mean time to repair</span><span class="value" id="cmp-mttr">&lt;2s</span></div>
+        <div class="compare-row"><span class="label">Revenue protected</span><span class="value" id="cmp-saved">$0</span></div>
+        <div class="compare-row"><span class="label">Recurring errors</span><span class="value">Immune after 1st fix</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// SCENARIO DATA — full detail for all 13 scenarios
+// ══════════════════════════════════════════════════════════════
+const SCENARIOS = [
+  {
+    id:1, name:'Insufficient Balance', desc:'USDC balance too low for payment',
+    tag:'live', mppError:'payment-insufficient', category:'balance',
+    perceive:'402 → payment-insufficient. Need $0.05 USDC, wallet has $0.02.',
+    actualBalance: 0.02, requiredAmount: 0.05,
+    candidates:[
+      {name:'Swap EURC→USDC via DEX', cost:'$0.001 fee', speed:'~0.5s', score:96, winner:true, successProbability:0.5, desc:'Use Tempo DEX to swap available EURC to USDC at market rate'},
+      {name:'Top-up from reserve wallet', cost:'$0 fee', speed:'~2s', score:72, successProbability:0.5, desc:'Transfer from backup hot wallet on Tempo L1'},
+      {name:'Reduce request to $0.02', cost:'$0', speed:'instant', score:41, successProbability:0.5, desc:'Partial payment with available balance'},
+    ],
+    evalReason:'Swap is cheapest + fastest. EURC→USDC direct pool has $2M liquidity.',
+    commitAction:'Swap 0.03 EURC → 0.03 USDC via Tempo DEX. Retry payment.',
+    gene:{type:'balance_insufficient', fix:'swap_eurc_usdc'},
+    savedAmount:500, balChange:{usdc:'+0.03', eurc:'-0.03'}
+  },
+  {
+    id:2, name:'Session Expired', desc:'MPP session timed out mid-stream',
+    tag:'live', mppError:'invalid-challenge', category:'session',
+    perceive:'402 → invalid-challenge. Session sess_7x2k expired at T+30min.',
+    candidates:[
+      {name:'Auto-renew MPP session', cost:'$0', speed:'~0.3s', score:92, winner:true, successProbability:0.5, desc:'Request fresh challenge from service, re-authenticate'},
+      {name:'Switch to one-time charge', cost:'$0.05 fee', speed:'~0.5s', score:61, successProbability:0.5, desc:'Abandon session, pay via single charge'},
+    ],
+    evalReason:'Session renewal is free and fastest. Service supports re-auth.',
+    commitAction:'POST /mpp/session/renew → new sess_9k3m. Retry with fresh credential.',
+    gene:{type:'session_expired', fix:'renew_session'},
+    savedAmount:50, balChange:{}
+  },
+  {
+    id:3, name:'Currency Mismatch', desc:'Service requires EURC but agent holds USDC',
+    tag:'live', mppError:'method-unsupported', category:'currency',
+    perceive:'402 → method-unsupported. Service requires EURC, agent offered USDC.',
+    actualBalance: null, requiredAmount: 0.05, availableToken: 'USDC', requiredToken: 'EURC',
+    candidates:[
+      {name:'Direct swap USDC→EURC', cost:'$0.001 fee', speed:'~0.6s', score:94, winner:true, successProbability:0.5, desc:'Swap via Tempo DEX USDC/EURC pool'},
+      {name:'Multi-hop USDC→USDT→EURC', cost:'$0.003 fee', speed:'~1.5s', score:58, successProbability:0.5, desc:'Route through USDT as intermediate'},
+      {name:'Switch to EURC-accepting service', cost:'$0', speed:'~0.2s', score:45, successProbability:0.5, desc:'Use alt provider that accepts USDC'},
+    ],
+    evalReason:'Direct swap has deepest liquidity and lowest slippage at this size.',
+    commitAction:'Swap 0.05 USDC → 0.05 EURC via Tempo DEX. Retry payment.',
+    gene:{type:'currency_mismatch', fix:'swap_usdc_eurc'},
+    savedAmount:200, balChange:{usdc:'-0.05', eurc:'+0.05'}
+  },
+  {
+    id:4, name:'Signature Failure', desc:'Nonce mismatch on transaction signing',
+    tag:'live', mppError:'verification-failed', category:'signature',
+    perceive:'402 → verification-failed. Nonce mismatch: expected 42, got 41.',
+    candidates:[
+      {name:'Refresh nonce from RPC', cost:'$0', speed:'~0.4s', score:89, winner:true, successProbability:0.5, desc:'Query Tempo RPC for current nonce, re-sign transaction'},
+      {name:'Re-derive signing key', cost:'$0', speed:'~0.6s', score:64, successProbability:0.5, desc:'Regenerate keypair from HD wallet path'},
+    ],
+    evalReason:'Nonce refresh is simpler and faster. Key derivation only needed if key is corrupted.',
+    commitAction:'GET /rpc/nonce → 42. Re-sign with correct nonce. Retry.',
+    gene:{type:'nonce_mismatch', fix:'refresh_nonce'},
+    savedAmount:100, balChange:{}
+  },
+  {
+    id:5, name:'Batch Revert', desc:'Batch transaction partially failed',
+    tag:'live', mppError:'tx-reverted', category:'batch',
+    perceive:'402 → tx-reverted. Batch item 3/5 failed: recipient 0xdead not found.',
+    candidates:[
+      {name:'Remove failed item, resubmit', cost:'$0.01 gas', speed:'~0.5s', score:88, winner:true, successProbability:0.5, desc:'Strip item 3, resubmit batch with 4 valid items'},
+      {name:'Fix address and retry all', cost:'$0.02 gas', speed:'~1s', score:65, successProbability:0.5, desc:'Resolve address, retry full batch'},
+      {name:'Split into individual txns', cost:'$0.05 gas', speed:'~2s', score:38, successProbability:0.5, desc:'Send each item as separate transaction'},
+    ],
+    evalReason:'Removing failed item is cheapest. 4/5 items proceed without delay.',
+    commitAction:'Remove item 3 (0xdead). Resubmit batch [1,2,4,5]. Success.',
+    gene:{type:'batch_partial_revert', fix:'remove_and_resubmit'},
+    savedAmount:500, balChange:{}
+  },
+  {
+    id:6, name:'Service Down After Payment', desc:'HTTP 500 after valid payment was sent',
+    tag:'mock', mppError:'HTTP 500', category:'service',
+    perceive:'500 from api.service.com AFTER payment. Receipt txn_abc123 is valid on-chain.',
+    candidates:[
+      {name:'Retry with receipt (idempotent)', cost:'$0', speed:'~0.2s', score:97, winner:true, successProbability:0.5, desc:'Re-send request with payment receipt as proof'},
+      {name:'Switch to backup provider', cost:'$0.01', speed:'~0.8s', score:62, successProbability:0.5, desc:'Route to secondary API endpoint'},
+      {name:'Request refund', cost:'$0', speed:'~3s', score:44, successProbability:0.5, desc:'Initiate on-chain refund for failed delivery'},
+    ],
+    evalReason:'Receipt retry is free + near-instant. MPP receipts are idempotent by design.',
+    commitAction:'Retry POST /api/data with header X-Payment-Receipt: txn_abc123. 200 OK.',
+    gene:{type:'service_down_post_pay', fix:'retry_with_receipt'},
+    savedAmount:300, balChange:{}
+  },
+  {
+    id:7, name:'DEX Slippage', desc:'Swap reverted due to price movement',
+    tag:'mock', mppError:'swap-reverted', category:'dex',
+    perceive:'swap-reverted. Slippage exceeded 1% (actual 3.2%) on USDC→EURC pool.',
+    candidates:[
+      {name:'Split into smaller swaps', cost:'$0.003 fee', speed:'~1.2s', score:85, winner:true, successProbability:0.5, desc:'Split $5 swap into 3x $1.67 to reduce per-swap impact'},
+      {name:'Route through deeper pool', cost:'$0.005 fee', speed:'~1.8s', score:62, successProbability:0.5, desc:'Use USDC→USDT→EURC path with more liquidity'},
+      {name:'Wait and retry', cost:'$0', speed:'~5s', score:48, successProbability:0.5, desc:'Wait for pool to stabilize, retry with same params'},
+    ],
+    evalReason:'Splitting minimizes slippage per trade. 3 small swaps all under 0.5% slippage.',
+    commitAction:'Split: 3x swap 1.67 USDC → EURC. All succeeded. Total slippage: 0.4%.',
+    gene:{type:'dex_slippage', fix:'split_swap'},
+    savedAmount:175, balChange:{usdc:'-5.00', eurc:'+4.98'}
+  },
+  {
+    id:8, name:'Compliance Block', desc:'TIP-403 policy rejection on USDT',
+    tag:'mock', mppError:'tip-403', category:'compliance',
+    perceive:'TIP-403: USDT blocked by compliance policy for EU-RESTRICTED jurisdiction.',
+    candidates:[
+      {name:'Switch to DAI (unrestricted)', cost:'$0.001 swap', speed:'~0.7s', score:91, winner:true, successProbability:0.5, desc:'Swap USDT→DAI which has no geo-restrictions'},
+      {name:'Route via compliant wallet', cost:'$0.05', speed:'~2s', score:52, successProbability:0.5, desc:'Send through KYC-verified intermediary wallet'},
+    ],
+    evalReason:'DAI has no compliance restrictions in any jurisdiction. Cheapest path.',
+    commitAction:'Swap 1.50 USDT → 1.50 DAI via DEX. Retry payment with DAI. Accepted.',
+    gene:{type:'compliance_block', fix:'switch_to_dai'},
+    savedAmount:250, balChange:{usdt:'-1.50'}
+  },
+  {
+    id:9, name:'Cascade Failure', desc:'Agent chain A→B→C, C fails',
+    tag:'vision', mppError:'cascade-failure', category:'cascade',
+    perceive:'Agent C payment failed in chain A→B→C. Waterfall refund needed.',
+    candidates:[
+      {name:'Refund waterfall C→B→A', cost:'$0.02 gas', speed:'~3s', score:82, winner:true, successProbability:0.5, desc:'Initiate sequential refund from C back through B to A'},
+      {name:'Reroute via alt agent D', cost:'$0.10', speed:'~5s', score:48, successProbability:0.5, desc:'Replace C with backup agent D, replay from B'},
+    ],
+    evalReason:'Refund waterfall is deterministic. Alt routing risks further cascade.',
+    commitAction:'Refund: C→B ($0.50), B→A ($1.20). All agents made whole.',
+    gene:{type:'cascade_failure', fix:'refund_waterfall'},
+    savedAmount:1000, balChange:{}
+  },
+  {
+    id:10, name:'Off-Ramp Failure', desc:'Bank transfer failed at provider',
+    tag:'vision', mppError:'offramp-failed', category:'offramp',
+    perceive:'Bank transfer to IBAN DE89... failed. Moonpay returned error 503.',
+    candidates:[
+      {name:'Switch off-ramp provider', cost:'$1.50 fee', speed:'~2s', score:76, winner:true, successProbability:0.5, desc:'Route through Ramp Network instead of Moonpay'},
+      {name:'Hold on-chain + notify', cost:'$0', speed:'~0.5s', score:68, successProbability:0.5, desc:'Keep funds on Tempo, alert operator for manual resolution'},
+    ],
+    evalReason:'Auto-switching ensures funds reach bank. Holding delays the user.',
+    commitAction:'Reroute to Ramp Network. Transfer initiated. ETA: 1 business day.',
+    gene:{type:'offramp_failure', fix:'switch_provider'},
+    savedAmount:400, balChange:{}
+  },
+  {
+    id:11, name:'Token Pause Mid-Transfer', desc:'TIP-20 token paused by issuer',
+    tag:'mock', mppError:'token-paused', category:'compliance',
+    perceive:'TIP-20 token USDC paused by issuer. All transfers revert.',
+    candidates:[
+      {name:'Switch USDC→USDT (unpaused)', cost:'$0.001', speed:'~0.8s', score:94, winner:true, successProbability:0.5, desc:'Swap to an unpaused USD stablecoin via DEX'},
+      {name:'Wait for unpause', cost:'$0', speed:'~30s', score:45, successProbability:0.5, desc:'Monitor pause state, auto-resume when unpaused'},
+      {name:'Abort and notify', cost:'$0', speed:'instant', score:30, successProbability:0.5, desc:'Abort transfer, notify caller with pause reason'},
+    ],
+    evalReason:'Switching to unpaused token is fastest and cheapest. USDT has full liquidity.',
+    commitAction:'Swap USDC → USDT via Tempo DEX. Retry transfer with USDT.',
+    gene:{type:'token_pause', fix:'switch_stablecoin'},
+    savedAmount:750, balChange:{usdt:'+0.05'}
+  },
+  {
+    id:12, name:'Fee Sponsor Exhausted', desc:'Sponsor account cannot pay gas',
+    tag:'mock', mppError:'sponsor-insufficient', category:'balance',
+    perceive:'Fee sponsor balance = 0. Cannot pay gas on behalf of agent.',
+    actualBalance: 0, requiredAmount: 0.0001,
+    candidates:[
+      {name:'Self-pay gas from wallet', cost:'$0.0001', speed:'~0.5s', score:92, winner:true, successProbability:0.5, desc:'Pay gas directly from agent wallet stablecoin'},
+      {name:'Switch to alt sponsor', cost:'$0', speed:'~1.2s', score:78, successProbability:0.5, desc:'Try alternate fee sponsor account'},
+      {name:'Abort and notify', cost:'$0', speed:'instant', score:25, successProbability:0.5, desc:'Abort and notify caller to fund sponsor'},
+    ],
+    evalReason:'Self-pay is near-instant. Gas cost negligible ($0.0001).',
+    commitAction:'Switch to self-pay gas mode. Retry original transaction.',
+    gene:{type:'sponsor_exhausted', fix:'fallback_self_pay'},
+    savedAmount:200, balChange:{}
+  },
+  {
+    id:13, name:'Network Mismatch (REAL)', desc:'Token contract uninitialized on target network',
+    tag:'real', mppError:'token-uninitialized', category:'network',
+    perceive:'TIP20 token error: Uninitialized(Uninitialized). Agent on testnet, service on mainnet.',
+    candidates:[
+      {name:'Switch to mainnet RPC', cost:'$0', speed:'~0.2s', score:94, winner:true, successProbability:0.5, desc:'Reconnect RPC endpoint to tempo-mainnet'},
+      {name:'Bridge testnet→mainnet', cost:'$0.50', speed:'~5s', score:52, successProbability:0.5, desc:'Bridge assets from testnet to mainnet via Tempo bridge'},
+      {name:'Use testnet-compatible service', cost:'$0', speed:'~0.1s', score:68, successProbability:0.5, desc:'Fall back to a service available on testnet'},
+    ],
+    evalReason:'Network switch is free and instant. No bridging needed if agent has mainnet credentials.',
+    commitAction:'Switched RPC endpoint to tempo-mainnet. Retry payment with mainnet token contract.',
+    gene:{type:'network_mismatch', fix:'switch_network'},
+    savedAmount:100, balChange:{}
+  },
+  // ── Privy scenarios (14-17) ──
+  {
+    id:14, name:'Policy Spending Limit (Privy)', desc:'Policy engine rejects transaction over limit',
+    tag:'privy', mppError:'policy-violation', category:'policy',
+    perceive:'policy-violation. Privy policy "max_transfer_500" blocks 2500 USDC transfer.',
+    candidates:[
+      {name:'Split into 5 × $500 txns', cost:'$0.02', speed:'~0.4s', score:90, winner:true, successProbability:0.5, desc:'Split transaction into multiple under-limit transfers'},
+      {name:'Switch to unrestricted wallet', cost:'$0', speed:'~0.2s', score:72, successProbability:0.5, desc:'Use wallet with higher spending limits'},
+    ],
+    evalReason:'Splitting is deterministic. Alt wallet requires API access.',
+    commitAction:'Split 2500 USDC into 5 × 500 USDC transfers. All succeeded.',
+    gene:{type:'policy_violation', fix:'split_transaction'},
+    savedAmount:200, balChange:{}
+  },
+  {
+    id:15, name:'Nonce Desync (Privy)', desc:'Wallet nonce out of sync with chain',
+    tag:'privy', mppError:'verification-failed', category:'signature',
+    perceive:'verification-failed. Wallet internal nonce=47, chain nonce=45. 2 pending txns stuck.',
+    candidates:[
+      {name:'Sync nonce from chain', cost:'$0', speed:'~0.2s', score:93, winner:true, successProbability:0.5, desc:'Read current nonce from chain, update wallet state'},
+      {name:'Cancel pending transactions', cost:'$0.01', speed:'~0.6s', score:68, successProbability:0.5, desc:'Cancel stuck transactions to reset nonce'},
+    ],
+    evalReason:'Chain sync is free and instant. Cancel only needed for stuck txns.',
+    commitAction:'Synced wallet nonce to chain state (45). Retry transaction.',
+    gene:{type:'nonce_desync', fix:'refresh_nonce'},
+    savedAmount:100, balChange:{}
+  },
+  {
+    id:16, name:'Gas Sponsor Depleted (Privy)', desc:'Automated gas sponsor has no balance',
+    tag:'privy', mppError:'payment-insufficient', category:'balance',
+    perceive:'payment-insufficient. Privy gas sponsor wallet has 0 USDC. Cannot pay gas.',
+    actualBalance: 0, requiredAmount: 0.01,
+    candidates:[
+      {name:'Self-pay gas from wallet', cost:'$0.01', speed:'~0.3s', score:95, winner:true, successProbability:0.5, desc:'Pay gas directly from agent stablecoin balance'},
+      {name:'Top up sponsor wallet', cost:'$1.00', speed:'~1s', score:60, successProbability:0.5, desc:'Fund the gas sponsor wallet from reserves'},
+    ],
+    evalReason:'Self-pay is near-instant. Gas cost negligible.',
+    commitAction:'Switch to self-pay gas mode. Retry original transaction.',
+    gene:{type:'gas_sponsor_depleted', fix:'self_pay_gas'},
+    savedAmount:150, balChange:{}
+  },
+  {
+    id:17, name:'Cross-Chain Mismatch (Privy)', desc:'Wallet on wrong chain for transaction',
+    tag:'privy', mppError:'token-uninitialized', category:'network',
+    perceive:'token-uninitialized. Wallet on Ethereum mainnet, tx targets Tempo (42069).',
+    candidates:[
+      {name:'Switch wallet chain context', cost:'$0', speed:'~0.2s', score:92, winner:true, successProbability:0.5, desc:'Switch embedded wallet to target chain'},
+      {name:'Create new wallet on target', cost:'$0', speed:'~0.8s', score:70, successProbability:0.5, desc:'Provision new wallet on Tempo chain via Privy API'},
+    ],
+    evalReason:'Chain switch is free and instant. New wallet only needed if chain not supported.',
+    commitAction:'Switched wallet chain context to Tempo (42069). Retry transaction.',
+    gene:{type:'cross_chain_mismatch', fix:'switch_network'},
+    savedAmount:100, balChange:{}
+  },
+  // ── Generic HTTP scenarios (18-20) ──
+  {
+    id:18, name:'429 Rate Limited', desc:'API rate limit exceeded',
+    tag:'generic', mppError:'rate-limited', category:'auth',
+    perceive:'rate-limited. 429 Too Many Requests. Retry-After: 5s.',
+    candidates:[
+      {name:'Exponential backoff', cost:'$0', speed:'~2s', score:85, winner:true, successProbability:0.5, desc:'Wait with exponential backoff, then retry'},
+      {name:'Switch to backup endpoint', cost:'$0', speed:'~0.1s', score:72, successProbability:0.5, desc:'Use alternate API endpoint with separate rate limit'},
+    ],
+    evalReason:'Backoff is reliable. Alt endpoint requires configuration.',
+    commitAction:'Waited 2s with backoff. Retried. 200 OK.',
+    gene:{type:'rate_limited', fix:'backoff_retry'},
+    savedAmount:50, balChange:{}
+  },
+  {
+    id:19, name:'500 Server Error', desc:'Payment gateway returned 500',
+    tag:'generic', mppError:'server-error', category:'service',
+    perceive:'server-error. HTTP 500 Internal Server Error from payment gateway.',
+    candidates:[
+      {name:'Simple retry after delay', cost:'$0', speed:'~1s', score:70, winner:true, successProbability:0.5, desc:'Wait briefly and retry the request'},
+      {name:'Switch to backup provider', cost:'$0', speed:'~0.2s', score:82, successProbability:0.5, desc:'Route to backup service provider'},
+    ],
+    evalReason:'Retry is simplest. Provider switch if retry fails.',
+    commitAction:'Retried after 1s delay. 200 OK.',
+    gene:{type:'server_error', fix:'retry'},
+    savedAmount:200, balChange:{}
+  },
+  {
+    id:20, name:'Request Timeout', desc:'Connection timed out',
+    tag:'generic', mppError:'timeout', category:'service',
+    perceive:'timeout. ETIMEDOUT after 10000ms connecting to api.service.com.',
+    candidates:[
+      {name:'Retry with longer timeout', cost:'$0', speed:'~1s', score:75, winner:true, successProbability:0.5, desc:'Increase timeout and retry'},
+      {name:'Switch provider', cost:'$0', speed:'~0.2s', score:80, successProbability:0.5, desc:'Route to faster backup endpoint'},
+    ],
+    evalReason:'Retry is cheapest. Provider switch if persistent.',
+    commitAction:'Retried with 30s timeout. 200 OK in 3.2s.',
+    gene:{type:'timeout', fix:'retry'},
+    savedAmount:150, balChange:{}
+  }
+];
+
+// ══════════════════════════════════════════════════════════════
+// Wallet state
+// ══════════════════════════════════════════════════════════════
+const wallet = { usdc: 0.02, eurc: 5.00, usdt: 1.50, pyusd: 0.00 };
+function updateWalletUI() {
+  for (const [k,v] of Object.entries(wallet)) {
+    const el = document.getElementById('bal-' + k);
+    if (el) el.textContent = v.toFixed(2);
+  }
+}
+function flashCoin(id, cls) {
+  const el = document.getElementById('coin-' + id);
+  if (!el) return;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 800);
+}
+function applyBalChange(change) {
+  for (const [k,v] of Object.entries(change)) {
+    const num = parseFloat(v);
+    if (isNaN(num)) continue;
+    const coin = k.toLowerCase();
+    if (wallet[coin] !== undefined) {
+      wallet[coin] = Math.max(0, +(wallet[coin] + num).toFixed(4));
+      flashCoin(coin, num > 0 ? 'flash-green' : 'flash-red');
+    }
+  }
+  updateWalletUI();
+}
+
+// ══════════════════════════════════════════════════════════════
+// PCEC Detail Panel animation
+// ══════════════════════════════════════════════════════════════
+let detailBusy = false;
+
+function resetPcecSteps() {
+  ['p','c','e','k'].forEach(s => {
+    const el = document.getElementById('step-' + s);
+    el.className = 'pcec-step';
+    el.querySelector('.step-body').innerHTML = '—';
+  });
+  document.getElementById('step-p-body').innerHTML = 'Waiting for failure injection...';
+  const banner = document.getElementById('result-banner');
+  banner.className = ''; banner.style.display = 'none'; banner.textContent = '';
+}
+
+function triggerScenario(idx) {
+  if (detailBusy) return;
+  detailBusy = true;
+  const sc = SCENARIOS[idx];
+  const isImmune = geneSet.has(sc.category);
+  const delay = isImmune ? 200 : 600;
+
+  // If immune hit, update probability based on hit count
+  const hitCount = geneHitCounts.get(sc.category) || 0;
+  const updatedProbability = Math.min(0.5 + hitCount * 0.15, 0.95);
+
+  resetPcecSteps();
+
+  // ── P: Perceive ──
+  setTimeout(() => {
+    const stepP = document.getElementById('step-p');
+    stepP.className = 'pcec-step active';
+
+    let perceiveExtra = '';
+    if (sc.actualBalance !== undefined && sc.actualBalance !== null) {
+      perceiveExtra += `<br><span style="color:var(--text-dim)">Extracted: </span>` +
+        `actualBalance=<span class="code">${sc.actualBalance}</span> ` +
+        `requiredAmount=<span class="code">${sc.requiredAmount}</span> ` +
+        `shortfall=<span style="color:var(--red)">${(sc.requiredAmount - sc.actualBalance).toFixed(2)}</span>`;
+    }
+    if (sc.availableToken) {
+      perceiveExtra += `<br><span style="color:var(--text-dim)">Extracted: </span>` +
+        `has=<span class="code">${sc.availableToken}</span> ` +
+        `needs=<span class="code">${sc.requiredToken}</span>`;
+    }
+
+    document.getElementById('step-p-body').innerHTML =
+      `<span class="code">${sc.mppError}</span> &mdash; ${sc.perceive}` +
+      perceiveExtra +
+      `<br>Category: <span class="code">${sc.category}</span> &bull; Severity: <span style="color:var(--red)">high</span>`;
+  }, 100);
+
+  // ── C: Construct ──
+  setTimeout(() => {
+    document.getElementById('step-p').className = 'pcec-step done';
+    const stepC = document.getElementById('step-c');
+
+    if (isImmune) {
+      stepC.className = 'pcec-step skipped';
+      document.getElementById('step-c-body').innerHTML = '<span class="skipped-msg">Skipped &mdash; Gene Map hit for ' + sc.category + ' (prob: ' + Math.round(updatedProbability * 100) + '%)</span>';
+    } else {
+      stepC.className = 'pcec-step active';
+      let html = `<div style="margin-bottom:4px">${sc.candidates.length} repair candidates generated:</div><div class="candidates">`;
+      for (const c of sc.candidates) {
+        const prob = (c.winner && isImmune) ? updatedProbability : (c.successProbability || 0.5);
+        const probColor = prob >= 0.7 ? 'var(--green)' : prob >= 0.5 ? 'var(--amber)' : 'var(--text-dim)';
+        html += `<div class="cand-card ${c.winner ? 'winner' : ''}">
+          <div class="cand-name">${c.name}</div>
+          <div class="cand-desc">${c.desc}</div>
+          <div class="cand-meta"><span>Cost: <b>${c.cost}</b></span><span>Speed: <b>${c.speed}</b></span><span>Gene Hit: <b style="color:${probColor}">${Math.round(prob * 100)}%</b></span></div>
+          <div class="score-bar-wrap"><div class="score-bar-fill" style="width:${c.score}%"></div></div>
+          <div class="score-label">${c.score}/100${c.winner ? ' ★' : ''}</div>
+        </div>`;
+      }
+      html += '</div>';
+      document.getElementById('step-c-body').innerHTML = html;
+    }
+  }, 100 + delay);
+
+  // ── E: Evaluate ──
+  setTimeout(() => {
+    if (!isImmune) document.getElementById('step-c').className = 'pcec-step done';
+    const stepE = document.getElementById('step-e');
+
+    if (isImmune) {
+      stepE.className = 'pcec-step skipped';
+      document.getElementById('step-e-body').innerHTML = '<span class="skipped-msg">Skipped &mdash; Using stored gene strategy</span>';
+    } else {
+      stepE.className = 'pcec-step active';
+      const winner = sc.candidates.find(c => c.winner);
+      document.getElementById('step-e-body').innerHTML =
+        `Winner: <span class="highlight">${winner.name}</span> (score: ${winner.score}/100)<br>` +
+        `<span style="color:var(--text-dim)">${sc.evalReason}</span>`;
+    }
+  }, 100 + delay * 2);
+
+  // ── K: Commit ──
+  setTimeout(() => {
+    if (!isImmune) document.getElementById('step-e').className = 'pcec-step done';
+    const stepK = document.getElementById('step-k');
+    stepK.className = 'pcec-step active';
+    document.getElementById('step-k-body').innerHTML =
+      `<span class="highlight">${sc.commitAction}</span><br>` +
+      `Gene Capsule: <span class="code">${sc.gene.type}</span> &rarr; <span class="highlight">${sc.gene.fix}</span>`;
+  }, 100 + delay * 3);
+
+  // ── Done ──
+  setTimeout(() => {
+    document.getElementById('step-k').className = 'pcec-step done';
+    const banner = document.getElementById('result-banner');
+    if (isImmune) {
+      banner.className = 'immune';
+      banner.style.display = 'block';
+      banner.innerHTML = `&#9889; IMMUNE &mdash; Instant fix via gene <b>${sc.gene.fix}</b>. Revenue protected: <b>$${sc.savedAmount}</b>`;
+    } else {
+      banner.className = 'success';
+      banner.style.display = 'block';
+      banner.innerHTML = `&#10003; Payment repaired in &lt;2s. Revenue saved: <b>$${sc.savedAmount}</b>. Gene Capsule stored.`;
+    }
+
+    // Update wallet
+    if (sc.balChange && Object.keys(sc.balChange).length) applyBalChange(sc.balChange);
+
+    // Update comparison
+    updateComparison(sc.savedAmount);
+
+    // Update gene timeline
+    addGeneToTimeline(sc.gene.type, sc.gene.fix, sc.category);
+
+    detailBusy = false;
+  }, 100 + delay * 4);
+}
+
+// ── Comparison panel ──
+const cmpData = { failures: 0, fixed: 0, lost: 0, saved: 0 };
+function updateComparison(savedAmt) {
+  cmpData.failures++;
+  cmpData.fixed++;
+  cmpData.lost += savedAmt;
+  cmpData.saved += savedAmt;
+  document.getElementById('cmp-fail-before').textContent = cmpData.failures;
+  document.getElementById('cmp-human').textContent = cmpData.failures;
+  document.getElementById('cmp-lost').textContent = '$' + cmpData.lost.toLocaleString();
+  document.getElementById('cmp-fixed').textContent = cmpData.fixed;
+  document.getElementById('cmp-saved').textContent = '$' + cmpData.saved.toLocaleString();
+}
+
+// ── Gene Timeline ──
+const geneTimelineSet = new Set();
+function addGeneToTimeline(type, fix, category) {
+  const key = type + '→' + fix;
+  if (geneTimelineSet.has(key)) return;
+  geneTimelineSet.add(key);
+  const pill = document.createElement('div');
+  pill.className = 'gene-pill-detail';
+  pill.innerHTML = `<span class="fail">${type}</span><span class="arrow">&rarr;</span><span class="fix">${fix}</span>`;
+  document.getElementById('gene-timeline').appendChild(pill);
+  document.getElementById('gene-count-badge').textContent = geneTimelineSet.size + ' GENE' + (geneTimelineSet.size !== 1 ? 'S' : '');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// CANVAS — Isometric Minecraft Lab (preserved from original)
+// ══════════════════════════════════════════════════════════════
+const TILE = 32;
+const GRID_W = 16, GRID_H = 10;
+const ISO_ANGLE = Math.PI / 6;
+const COS_A = Math.cos(ISO_ANGLE), SIN_A = Math.sin(ISO_ANGLE);
+
+const canvas = document.getElementById('lab');
+const ctx = canvas.getContext('2d');
+
+let camX = -110, camY = -135, camZoom = 1.0, camDir = 0;
+let dragStart = null, dragCamStart = null;
+let W, H;
+
+const stats = { failures: 0, repairs: 0, revenue: 0, genes: 0, immune: 0 };
+const geneSet = new Set();
+const geneHitCounts = new Map();
+const genePlatformMap = new Map(); // cat → platform that first stored this gene
+
+function updateStats() {
+  document.getElementById('s-fail').textContent = stats.failures;
+  document.getElementById('s-repair').textContent = stats.repairs;
+  document.getElementById('s-rev').textContent = '$' + stats.revenue.toLocaleString();
+  document.getElementById('s-gene').textContent = stats.genes;
+  document.getElementById('s-immune').textContent = stats.immune;
+  const xp = document.getElementById('s-xplat');
+  if (xp) xp.textContent = crossPlatformFixes;
+}
+
+function addGenePill(cat) {
+  if (geneSet.has(cat)) return;
+  geneSet.add(cat);
+  const pill = document.createElement('span');
+  pill.className = 'gene-pill';
+  pill.textContent = cat.slice(0,2).toUpperCase();
+  pill.title = cat;
+  document.getElementById('gene-bar').appendChild(pill);
+}
+
+function logEvent(msg) {
+  document.getElementById('event-log').textContent = msg;
+}
+
+function isoProject(gx, gy, gz) {
+  let rx = gx, ry = gy;
+  for (let i = 0; i < camDir; i++) { const tmp = rx; rx = GRID_H - 1 - ry; ry = tmp; }
+  const sx = (rx - ry) * TILE * COS_A;
+  const sy = (rx + ry) * TILE * SIN_A - gz * TILE * 0.6;
+  return [(sx + camX) * camZoom + W / 2, (sy + camY) * camZoom + H / 2];
+}
+
+function drawIsoBlock(gx, gy, gz, w, h, d, color, darker, darkest) {
+  const tl = isoProject(gx, gy, gz + d), tr = isoProject(gx + w, gy, gz + d);
+  const br = isoProject(gx + w, gy + h, gz + d), bl = isoProject(gx, gy + h, gz + d);
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(tl[0],tl[1]); ctx.lineTo(tr[0],tr[1]); ctx.lineTo(br[0],br[1]); ctx.lineTo(bl[0],bl[1]); ctx.closePath(); ctx.fill();
+  const rbr = isoProject(gx+w,gy+h,gz), rtr = isoProject(gx+w,gy,gz);
+  ctx.fillStyle = darker;
+  ctx.beginPath(); ctx.moveTo(tr[0],tr[1]); ctx.lineTo(rtr[0],rtr[1]); ctx.lineTo(rbr[0],rbr[1]); ctx.lineTo(br[0],br[1]); ctx.closePath(); ctx.fill();
+  const lbl = isoProject(gx,gy+h,gz);
+  ctx.fillStyle = darkest;
+  ctx.beginPath(); ctx.moveTo(bl[0],bl[1]); ctx.lineTo(lbl[0],lbl[1]); ctx.lineTo(rbr[0],rbr[1]); ctx.lineTo(br[0],br[1]); ctx.closePath(); ctx.fill();
+}
+
+function drawDiamond(gx, gy, gz, size, color) {
+  const c = isoProject(gx,gy,gz), s = size * camZoom;
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(c[0],c[1]-s); ctx.lineTo(c[0]+s*1.5,c[1]); ctx.lineTo(c[0],c[1]+s*0.5); ctx.lineTo(c[0]-s*1.5,c[1]); ctx.closePath(); ctx.fill();
+}
+
+const AGENTS = [
+  {name:'USDC Agent',color:'#4a9eff',gx:1,gy:1},{name:'Session Mgr',color:'#4ecdc4',gx:4,gy:1},
+  {name:'FX Router',color:'#9b59b6',gx:7,gy:1},{name:'Payroll Bot',color:'#e91e8c',gx:10,gy:1},
+  {name:'MPP Client',color:'#f5a623',gx:13,gy:1},
+];
+const PCEC_POS = {gx:7,gy:5}, GENE_POS = {gx:13,gy:5};
+
+class Worker {
+  constructor(a,i){this.name=a.name;this.color=a.color;this.homeX=a.gx;this.homeY=a.gy;this.x=a.gx;this.y=a.gy;this.index=i;this.state='idle';this.label='';this.anim=0;this.targetX=a.gx;this.targetY=a.gy;this.errorCode='';this.pulsePhase=0;this.legPhase=0;this.immune=false;}
+  setState(state,label,errorCode){this.state=state;this.label=label||'';this.errorCode=errorCode||'';this.immune=false;if(state==='error')this.pulsePhase=0;if(state==='walking'){this.targetX=PCEC_POS.gx;this.targetY=PCEC_POS.gy;}if(state==='toGene'){this.targetX=GENE_POS.gx;this.targetY=GENE_POS.gy;}if(state==='returning'){this.targetX=this.homeX;this.targetY=this.homeY;}}
+  setImmune(label){this.state='error';this.label=label;this.immune=true;this.pulsePhase=0;}
+  update(dt){this.anim+=dt;this.legPhase+=dt*8;this.pulsePhase+=dt*4;if(this.state==='walking'||this.state==='toGene'||this.state==='returning'){const speed=4*dt,dx=this.targetX-this.x,dy=this.targetY-this.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<0.2){this.x=this.targetX;this.y=this.targetY;}else{this.x+=dx/dist*speed;this.y+=dy/dist*speed;}}}
+  draw(){
+    const p=isoProject(this.x+0.5,this.y+0.5,0),z=camZoom;
+    const legOff=(this.state==='walking'||this.state==='toGene'||this.state==='returning')?Math.sin(this.legPhase)*3*z:0;
+    ctx.fillStyle='#333';ctx.fillRect(p[0]-4*z+legOff,p[1]-6*z,3*z,8*z);ctx.fillRect(p[0]+1*z-legOff,p[1]-6*z,3*z,8*z);
+    const bodyColor=this.state==='error'&&!this.immune?'#cc3333':this.immune?'#9b59b6':this.color;
+    ctx.fillStyle=bodyColor;ctx.fillRect(p[0]-5*z,p[1]-16*z,10*z,12*z);
+    const bob=this.state==='idle'?Math.sin(this.anim*2)*z:0;
+    ctx.fillStyle='#f0d0a0';ctx.fillRect(p[0]-4*z,p[1]-23*z+bob,8*z,8*z);
+    ctx.fillStyle='#222';ctx.fillRect(p[0]-2*z,p[1]-20*z+bob,2*z,2*z);ctx.fillRect(p[0]+1*z,p[1]-20*z+bob,2*z,2*z);
+    if(this.state==='error'&&!this.immune){const r=(15+Math.sin(this.pulsePhase)*10)*z;ctx.strokeStyle=`rgba(255,50,50,${0.5+Math.sin(this.pulsePhase)*0.3})`;ctx.lineWidth=2*z;ctx.beginPath();ctx.arc(p[0],p[1]-12*z,r,0,Math.PI*2);ctx.stroke();}
+    if(this.immune){const r=(15+Math.sin(this.pulsePhase)*8)*z;ctx.strokeStyle=`rgba(78,205,196,${0.6+Math.sin(this.pulsePhase)*0.3})`;ctx.lineWidth=2*z;ctx.beginPath();ctx.arc(p[0],p[1]-12*z,r,0,Math.PI*2);ctx.stroke();}
+    if(this.label){ctx.font=`bold ${9*z}px Courier New`;ctx.fillStyle=this.immune?'#4ecdc4':this.state==='error'?'#ff6b6b':'#f5a623';ctx.textAlign='center';ctx.fillText(this.label,p[0],p[1]-28*z);}
+    if(this.state==='idle'){ctx.font=`${7*z}px Courier New`;ctx.fillStyle='#666';ctx.textAlign='center';ctx.fillText(this.name,p[0],p[1]+8*z);}
+  }
+}
+const workers = AGENTS.map((a,i) => new Worker(a,i));
+let geneShelfCount = 0, dnaPhase = 0;
+const particles = [];
+for(let i=0;i<12;i++) particles.push({x:Math.random()*GRID_W,y:GRID_H-1.5+Math.random()*0.8,speed:0.5+Math.random()*1.5,color:Math.random()>0.5?'#f5a623':'#4ecdc4',size:3+Math.random()*3});
+let pcecGlow = 0;
+
+function draw(time){
+  const dt=1/60; dnaPhase+=dt*1.5; pcecGlow*=0.97;
+  ctx.fillStyle='#080a12'; ctx.fillRect(0,0,W,H);
+  for(let gx=0;gx<GRID_W;gx++) for(let gy=0;gy<GRID_H;gy++) drawDiamond(gx+0.5,gy+0.5,0,TILE*0.45,(gx+gy)%2===0?'#111830':'#0e1428');
+  for(let i=0;i<GRID_W;i++) drawIsoBlock(i,0,0,1,0.2,2.5,'#1a2040','#141830','#0f1225');
+  for(let i=0;i<GRID_H;i++) drawIsoBlock(0,i,0,0.2,1,2.5,'#1a2040','#141830','#0f1225');
+  for(const a of AGENTS){drawIsoBlock(a.gx,a.gy+0.6,0,2,1,0.5,'#2a1f14','#221a10','#1a140c');drawIsoBlock(a.gx+0.3,a.gy+0.7,0.5,1.4,0.15,0.9,'#111','#1a1a2a','#0a0a15');const sp=isoProject(a.gx+1,a.gy+0.7,1.2);ctx.fillStyle=a.color+'40';ctx.fillRect(sp[0]-12*camZoom,sp[1]-8*camZoom,24*camZoom,14*camZoom);}
+  drawIsoBlock(PCEC_POS.gx-0.5,PCEC_POS.gy-0.5,0,3,2,1.5,pcecGlow>0.1?'#4a3010':'#2a2010','#221a08','#1a1406');
+  drawIsoBlock(PCEC_POS.gx,PCEC_POS.gy,0.6,0.8,0.1,0.6,'#1a2a1a','#142014','#0f180f');
+  drawIsoBlock(PCEC_POS.gx+1.2,PCEC_POS.gy,0.6,0.8,0.1,0.6,'#2a1a1a','#201414','#180f0f');
+  if(pcecGlow>0.1){const cp=isoProject(PCEC_POS.gx+1,PCEC_POS.gy+0.5,1.8);ctx.strokeStyle=`rgba(245,166,35,${0.3+pcecGlow*0.4})`;ctx.lineWidth=3*camZoom;ctx.beginPath();ctx.arc(cp[0],cp[1],20*camZoom,0,Math.PI*2);ctx.stroke();}
+  const pcL=isoProject(PCEC_POS.gx+1,PCEC_POS.gy+0.5,2.2);ctx.font=`bold ${9*camZoom}px Courier New`;ctx.fillStyle='#f5a623';ctx.textAlign='center';ctx.fillText('PCEC ENGINE',pcL[0],pcL[1]);
+  drawIsoBlock(GENE_POS.gx-0.5,GENE_POS.gy-0.5,0,3,2,2,'#1a1030','#141028','#0f0c20');
+  for(let s=0;s<3;s++) drawIsoBlock(GENE_POS.gx-0.3,GENE_POS.gy-0.3,0.3+s*0.6,2.6,0.1,0.05,'#2a2040','#221a38','#1a1430');
+  for(let i=0;i<geneShelfCount&&i<15;i++){const sh=Math.floor(i/5),sl=i%5;drawIsoBlock(GENE_POS.gx-0.1+sl*0.5,GENE_POS.gy-0.2,0.35+sh*0.6,0.35,0.3,0.2,'#2d6a4f','#256b47','#1e5a3a');}
+  const gL=isoProject(GENE_POS.gx+1,GENE_POS.gy+0.5,2.5);ctx.font=`bold ${9*camZoom}px Courier New`;ctx.fillStyle='#9b59b6';ctx.textAlign='center';ctx.fillText('GENE LIBRARY',gL[0],gL[1]);
+  const hc=isoProject(GENE_POS.gx+1,GENE_POS.gy-1.5,1);
+  for(let i=0;i<20;i++){const t=i/20*Math.PI*4+dnaPhase,y=hc[1]-i*3*camZoom,x1=hc[0]+Math.cos(t)*12*camZoom,x2=hc[0]+Math.cos(t+Math.PI)*12*camZoom;ctx.fillStyle='#f5a623';ctx.beginPath();ctx.arc(x1,y,2.5*camZoom,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4ecdc4';ctx.beginPath();ctx.arc(x2,y,2.5*camZoom,0,Math.PI*2);ctx.fill();if(i%3===0){ctx.strokeStyle='#9b59b640';ctx.lineWidth=camZoom;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();}}
+  const lY=GRID_H-1;for(let i=1;i<GRID_W-1;i++) drawDiamond(i+0.5,lY+0.5,0,TILE*0.4,'#1a1830');
+  const lL=isoProject(GRID_W/2,lY+0.5,0.3);ctx.font=`${7*camZoom}px Courier New`;ctx.fillStyle='#333';ctx.textAlign='center';ctx.fillText('TEMPO PAYMENT LANE',lL[0],lL[1]);
+  for(const p of particles){p.x+=p.speed*dt;if(p.x>GRID_W)p.x=0;const pp=isoProject(p.x,p.y,0.1);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(pp[0],pp[1],p.size*camZoom,0,Math.PI*2);ctx.fill();ctx.fillStyle=p.color+'30';const tp=isoProject(p.x-0.3,p.y,0.1);ctx.beginPath();ctx.arc(tp[0],tp[1],p.size*0.6*camZoom,0,Math.PI*2);ctx.fill();}
+  const sorted=[...workers].sort((a,b)=>a.y-b.y);for(const w of sorted){w.update(dt);w.draw();}
+  requestAnimationFrame(draw);
+}
+
+function resize(){const wrap=document.getElementById('canvas-wrap');W=wrap.clientWidth;H=wrap.clientHeight;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);}
+window.addEventListener('resize',resize); resize();
+canvas.addEventListener('wheel',e=>{e.preventDefault();camZoom*=e.deltaY>0?0.92:1.08;camZoom=Math.max(0.3,Math.min(3,camZoom));},{passive:false});
+canvas.addEventListener('mousedown',e=>{dragStart={x:e.clientX,y:e.clientY};dragCamStart={x:camX,y:camY};});
+window.addEventListener('mousemove',e=>{if(!dragStart)return;camX=dragCamStart.x+(e.clientX-dragStart.x)/camZoom;camY=dragCamStart.y+(e.clientY-dragStart.y)/camZoom;});
+window.addEventListener('mouseup',()=>{dragStart=null;});
+function camRotate(dir){camDir=(camDir+dir+4)%4;}
+
+// ══════════════════════════════════════════════════════════════
+// Injection — triggers BOTH canvas animation AND detail panel
+// ══════════════════════════════════════════════════════════════
+const SCENARIO_NAMES = ['payment-insufficient','invalid-challenge','method-unsupported','verification-failed','tx-reverted','service-500','swap-reverted','tip-403','cascade-failure','offramp-failed','token-paused','sponsor-insufficient','token-uninitialized','policy-violation','verification-failed','payment-insufficient','token-uninitialized','rate-limited','server-error','timeout'];
+const SCENARIO_CATS = ['balance','session','currency','signature','batch','service','dex','compliance','cascade','offramp','compliance','balance','network','policy','signature','balance','network','auth','service','service'];
+const SCENARIO_STRATS = ['swap_currency','renew_session','swap_direct','refresh_nonce','remove_and_resubmit','retry_with_receipt','split_swap','switch_stablecoin','refund_waterfall','switch_offramp','switch_stablecoin','fallback_self_pay','switch_network','split_transaction','refresh_nonce','self_pay_gas','switch_network','backoff_retry','retry','retry'];
+const SCENARIO_PLATFORMS = ['tempo','tempo','tempo','tempo','tempo','tempo','tempo','tempo','tempo','tempo','tempo','tempo','tempo','privy','privy','privy','privy','generic','generic','generic'];
+let crossPlatformFixes = 0;
+
+function inject(idx) {
+  const workerIdx = idx % workers.length;
+  const w = workers[workerIdx];
+  if (w.state !== 'idle') return;
+  const code = SCENARIO_NAMES[idx], cat = SCENARIO_CATS[idx], strat = SCENARIO_STRATS[idx];
+  const isImmune = geneSet.has(cat);
+
+  // Safety limit visual indicator
+  const safetyEl = document.getElementById('pcec-safety');
+  if (safetyEl) {
+    safetyEl.innerHTML = 'PCEC: <b style="color:var(--green)">SAFE</b>';
+    if (!window._injectCounts) window._injectCounts = {};
+    window._injectCounts[idx] = (window._injectCounts[idx] || 0) + 1;
+    if (window._injectCounts[idx] > 3) {
+      safetyEl.innerHTML = 'PCEC: <b style="color:var(--red)">LIMIT</b>';
+      setTimeout(() => {
+        safetyEl.innerHTML = 'PCEC: <b style="color:var(--green)">SAFE</b>';
+        window._injectCounts[idx] = 0;
+      }, 1500);
+    }
+  }
+
+  stats.failures++;
+
+  // Trigger detail panel
+  triggerScenario(idx);
+
+  if (isImmune) {
+    // Track immune hit count for successProbability upgrade
+    geneHitCounts.set(cat, (geneHitCounts.get(cat) || 1) + 1);
+    stats.immune++; stats.repairs++; stats.revenue += SCENARIOS[idx].savedAmount;
+    const platform = SCENARIO_PLATFORMS[idx];
+    const genePlatform = genePlatformMap.get(cat);
+    const isCrossPlatform = genePlatform && genePlatform !== platform;
+    if (isCrossPlatform) crossPlatformFixes++;
+    const label = isCrossPlatform ? '⚡ X-PLAT: ' + strat : '⚡ IMMUNE: ' + strat;
+    w.setImmune(label);
+    logEvent(isCrossPlatform ? `[CROSS-PLATFORM] ${code} → ${strat} (learned: ${genePlatform}, healed: ${platform})` : `[IMMUNE] ${code} → instant fix via ${strat}`);
+    setTimeout(()=>{w.setState('returning','✓ FIXED');setTimeout(()=>{w.setState('idle');},1500);},800);
+    updateStats(); return;
+  }
+
+  w.setState('error','⚠ '+code,code); logEvent(`[PERCEIVE] ${code} → ${cat}`);
+  setTimeout(()=>{w.setState('walking','→ PCEC');logEvent(`[CONSTRUCT] 3 candidates for ${cat}`);pcecGlow=1;},1000);
+  setTimeout(()=>{w.setState('repairing','P→C→E→K');w.x=PCEC_POS.gx+1;w.y=PCEC_POS.gy+0.5;logEvent(`[EVALUATE] Winner: ${strat}`);pcecGlow=1;},2500);
+  setTimeout(()=>{w.setState('toGene','→ GENE LIB');logEvent(`[COMMIT] ✓ ${strat}`);stats.repairs++;stats.revenue+=SCENARIOS[idx].savedAmount;},4000);
+  setTimeout(()=>{w.setState('storing','📦 Gene Stored');w.x=GENE_POS.gx+1;w.y=GENE_POS.gy+0.5;geneShelfCount++;stats.genes++;addGenePill(cat);if(!genePlatformMap.has(cat))genePlatformMap.set(cat,SCENARIO_PLATFORMS[idx]);logEvent(`[GENE] ${cat}/${code} → ${strat} (${SCENARIO_PLATFORMS[idx]})`);},5500);
+  setTimeout(()=>{w.setState('returning','✓ FIXED');logEvent(`[STATS] Repairs: ${stats.repairs} | Revenue: $${stats.revenue}`);},6500);
+  setTimeout(()=>{w.setState('idle');},8000);
+  updateStats();
+}
+
+// ══════════════════════════════════════════════════════════════
+// SSE Connection
+// ══════════════════════════════════════════════════════════════
+function connectSSE(){
+  try{
+    const es=new EventSource('/api/helix/stream');
+    es.onopen=()=>{document.getElementById('conn-status').textContent='● CONNECTED';document.getElementById('conn-status').style.color='#4ecdc4';};
+    es.onmessage=(msg)=>{try{handleSSE(JSON.parse(msg.data));}catch{}};
+    es.onerror=()=>{document.getElementById('conn-status').textContent='STANDALONE';document.getElementById('conn-status').style.color='var(--amber)';es.close();};
+  }catch{}
+}
+function handleSSE(event){
+  const wi=Math.abs(hashStr(event.agentId||'x'))%workers.length,w=workers[wi],d=event.data;
+  switch(event.type){
+    case 'perceive':stats.failures++;w.setState('error','⚠ '+d.code,d.code);logEvent(`[PERCEIVE] ${d.code} → ${d.category}`);setTimeout(()=>{w.setState('walking','→ PCEC');},600);break;
+    case 'construct':logEvent(`[CONSTRUCT] ${d.candidateCount} candidates for ${d.category}`);pcecGlow=1;break;
+    case 'evaluate':w.setState('repairing','P→C→E→K');w.x=PCEC_POS.gx+1;w.y=PCEC_POS.gy+0.5;logEvent(`[EVALUATE] Winner: ${d.winner} (score:${d.score})`);pcecGlow=1;break;
+    case 'commit':if(d.success){stats.repairs++;stats.revenue+=150;w.setState('toGene','→ GENE LIB');logEvent(`[COMMIT] ✓ ${d.strategy}`);}break;
+    case 'gene':geneShelfCount++;stats.genes++;addGenePill(d.category);w.setState('storing','📦');w.x=GENE_POS.gx+1;w.y=GENE_POS.gy+0.5;logEvent(`[GENE] ${d.category}/${d.code}`);setTimeout(()=>{w.setState('returning','✓ FIXED');setTimeout(()=>{w.setState('idle');},1500);},800);break;
+    case 'immune':stats.immune++;stats.repairs++;stats.revenue+=150;w.setImmune('⚡ IMMUNE');logEvent(`[IMMUNE] ⚡ ${d.strategy}`);setTimeout(()=>{w.setState('returning','✓ FIXED');setTimeout(()=>{w.setState('idle');},1000);},600);break;
+    case 'stats':break;
+  }
+  updateStats();
+}
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=((h<<5)-h+s.charCodeAt(i))|0;return h;}
+
+requestAnimationFrame(draw);
+connectSSE();
+</script>
+</body>
+</html>

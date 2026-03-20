@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Helix — Milestone & Infrastructure Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#08090d;--bg2:#0e1018;--bg3:#14161e;--card:rgba(255,255,255,0.025);--b:rgba(255,255,255,0.06);--bh:rgba(255,255,255,0.1);--t:#d8dce8;--tm:#6b7394;--td:#3a3f58;--amber:#e8a040;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;--teal:#2dd4bf;--pink:#f472b6;--sans:'DM Sans',sans-serif;--mono:'IBM Plex Mono',monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--t);min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 30% at 15% 0%,rgba(232,160,64,0.04),transparent),radial-gradient(ellipse 40% 25% at 85% 5%,rgba(45,212,191,0.03),transparent)}
+.page{max-width:1080px;margin:0 auto;padding:40px 24px 100px;position:relative;z-index:1}
+
+/* Header */
+.hdr{margin-bottom:48px}
+.hdr-pre{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:8px;font-family:var(--mono)}
+.hdr h1{font-size:36px;font-weight:700;letter-spacing:-.03em;line-height:1.15;margin-bottom:10px}
+.hdr h1 span{color:var(--amber)}
+.hdr p{font-size:15px;color:var(--tm);max-width:680px;line-height:1.7}
+
+/* Phase tabs */
+.tabs{display:flex;gap:6px;margin-bottom:32px;position:sticky;top:0;z-index:50;background:var(--bg);padding:12px 0;border-bottom:1px solid var(--b)}
+.tab{padding:10px 20px;border-radius:8px;border:1px solid var(--b);background:transparent;color:var(--tm);cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans);transition:all .15s;display:flex;align-items:center;gap:8px}
+.tab:hover{background:var(--bg3);border-color:var(--bh);color:var(--t)}
+.tab.on{color:#000;border-color:transparent}
+.tab .dot{width:8px;height:8px;border-radius:50%}
+.t0.on{background:var(--green)}.t0 .dot{background:var(--green)}
+.t1.on{background:var(--amber)}.t1 .dot{background:var(--amber)}
+.t2.on{background:var(--purple)}.t2 .dot{background:var(--purple)}
+.t3.on{background:var(--teal)}.t3 .dot{background:var(--teal)}
+
+/* Phase content */
+.ph{display:none}.ph.on{display:block}
+
+/* Phase header */
+.ph-hdr{margin-bottom:28px;padding:24px 28px;border-radius:14px;border:1px solid var(--b);background:var(--card)}
+.ph-hdr h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.ph-hdr .meta{display:flex;gap:20px;font-size:12px;color:var(--tm);font-family:var(--mono);margin-bottom:10px;flex-wrap:wrap}
+.ph-hdr .meta b{color:var(--t);font-weight:600}
+.ph-hdr p{font-size:14px;color:var(--tm);line-height:1.7;max-width:700px}
+
+/* Section */
+.sec{margin-bottom:24px}
+.sec-title{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--td);margin-bottom:14px;font-family:var(--mono)}
+
+/* Infra grid */
+.infra{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.infra{grid-template-columns:1fr}}
+.infra-card{padding:18px 20px;border-radius:12px;border:1px solid var(--b);background:var(--card);transition:border-color .2s}
+.infra-card:hover{border-color:var(--bh)}
+.infra-card.full{grid-column:1/-1}
+.ic-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ic-hdr h3{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.ic-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.tag{font-size:10px;padding:3px 8px;border-radius:5px;font-weight:600;font-family:var(--mono)}
+.tag-sv{background:rgba(74,222,128,0.1);color:var(--green)}
+.tag-db{background:rgba(96,165,250,0.1);color:var(--blue)}
+.tag-ca{background:rgba(232,160,64,0.1);color:var(--amber)}
+.tag-mq{background:rgba(248,113,113,0.1);color:var(--red)}
+.tag-ext{background:rgba(167,139,250,0.1);color:var(--purple)}
+.tag-sc{background:rgba(45,212,191,0.1);color:var(--teal)}
+.ic-body{font-size:13px;color:var(--tm);line-height:1.65}
+.ic-why{margin-top:10px;padding:10px 14px;border-radius:8px;background:var(--bg2);border-left:2px solid var(--amber);font-size:12px;color:var(--tm);line-height:1.6}
+.ic-why b{color:var(--amber);font-weight:600}
+
+/* Summary table */
+.sum{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}
+.sum th{text-align:left;font-size:10px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.1em;padding:8px 12px;border-bottom:1px solid var(--b);font-family:var(--mono)}
+.sum td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.sum td:last-child{text-align:right;font-family:var(--mono);font-weight:600;color:var(--t)}
+.sum tr:hover td{background:rgba(255,255,255,0.015)}
+
+/* Cost card */
+.cost-card{margin-top:16px;padding:16px 20px;border-radius:12px;border:1px solid var(--b);background:var(--bg2);display:flex;align-items:center;gap:16px}
+.cost-amt{font-size:28px;font-weight:700;font-family:var(--mono);letter-spacing:-.02em}
+.cost-label{font-size:12px;color:var(--tm);line-height:1.5}
+
+/* Decision table */
+.dec{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
+.dec th{text-align:left;font-size:10px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.1em;padding:8px 12px;border-bottom:1px solid var(--b);font-family:var(--mono)}
+.dec td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:top}
+.dec td:first-child{font-weight:600;color:var(--t);white-space:nowrap}
+.dec td:nth-child(2){font-family:var(--mono);color:var(--amber)}
+.dec td:nth-child(3){color:var(--tm);line-height:1.55}
+
+/* Deliverables */
+.del{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.del-item{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:8px;background:var(--card);border:1px solid var(--b);font-size:13px}
+.del-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--b);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;margin-top:1px}
+.del-item .label{flex:1;color:var(--tm);line-height:1.5}
+.del-item .label b{color:var(--t);font-weight:600}
+.del-time{font-size:11px;color:var(--td);font-family:var(--mono);flex-shrink:0}
+
+/* Flow diagram */
+.flow{display:flex;align-items:center;gap:0;margin:16px 0;overflow-x:auto;padding:8px 0}
+.flow-node{padding:12px 16px;border-radius:10px;border:1px solid var(--b);background:var(--card);text-align:center;min-width:110px;flex-shrink:0}
+.flow-node h4{font-size:12px;font-weight:600;margin-bottom:3px}
+.flow-node p{font-size:10px;color:var(--tm)}
+.flow-arrow{padding:0 6px;color:var(--td);font-size:16px;flex-shrink:0}
+
+/* Animate */
+.ph.on .infra-card{animation:up .4s ease both}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.infra-card:nth-child(1){animation-delay:.05s}
+.infra-card:nth-child(2){animation-delay:.1s}
+.infra-card:nth-child(3){animation-delay:.15s}
+.infra-card:nth-child(4){animation-delay:.2s}
+.infra-card:nth-child(5){animation-delay:.25s}
+.infra-card:nth-child(6){animation-delay:.3s}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="hdr">
+  <div class="hdr-pre">Helix · Engineering Plan</div>
+  <!-- Multi-platform launch context -->
+  <div style="font-size:11px;color:var(--tm);margin-bottom:4px;font-family:var(--mono)">20 failure scenarios across 3 platforms at launch · Cross-platform Gene immunity proven in demo</div>
+  <h1>Milestone & <span>Infrastructure</span> Roadmap</h1>
+  <p>From hackathon demo to production payment operating system. Each phase covers: what to build, what infrastructure you need, what it costs, and the key technical decisions.</p>
+</div>
+
+<div class="tabs">
+  <button class="tab t0 on" onclick="go(0)"><span class="dot"></span>Phase 1: production SDK</button>
+  <button class="tab t1" onclick="go(1)"><span class="dot"></span>Phase 2: intelligence</button>
+  <button class="tab t2" onclick="go(2)"><span class="dot"></span>Phase 3: network</button>
+  <button class="tab t3" onclick="go(3)"><span class="dot"></span>Phase 4: full OS</button>
+</div>
+
+<!-- ═══════ PHASE 1 ═══════ -->
+<div class="ph on" id="p0">
+<div class="ph-hdr">
+  <h2 style="color:var(--green)">Phase 1: Production SDK</h2>
+  <div class="meta"><span>Timeline: <b>2 weeks</b></span><span>Team: <b>1 engineer</b></span><span>Infra cost: <b>~$0-20/mo</b></span></div>
+  <p>Turn the hackathon demo into a production SDK that moves real money on Tempo. PCEC Commit calls real chain functions. Gene Map stores real repair history. Everything else stays the same.</p>
+</div>
+
+<div class="sec"><div class="sec-title">Infrastructure</div>
+<div class="infra">
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Helix SDK (library)</h3></div>
+    <div class="ic-tags"><span class="tag tag-sv">Node.js</span><span class="tag tag-sv">TypeScript</span><span class="tag tag-ext">npm package</span></div>
+    <div class="ic-body">Not a server. A library that runs inside the agent's own process. wrap() intercepts errors, PCEC repairs, retries. Zero separate infrastructure.</div>
+    <div class="ic-why"><b>Key decision:</b> SDK is a library, not a microservice. This means zero deployment overhead for users — just npm install. No Docker, no sidecar, no port forwarding.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Gene Map</h3></div>
+    <div class="ic-tags"><span class="tag tag-db">SQLite</span><span class="tag tag-db">WAL mode</span></div>
+    <div class="ic-body">Local .db file per agent instance. Stores Gene Capsules with success counts and timing. Zero ops overhead. Survives process restarts.</div>
+    <div class="ic-why"><b>Why not Postgres?</b> Single-writer workload. Embedded database. Zero config. You don't need Postgres until Phase 2 when multiple instances share Gene data.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Tempo chain access</h3></div>
+    <div class="ic-tags"><span class="tag tag-ext">Tempo RPC</span><span class="tag tag-ext">mppx SDK</span></div>
+    <div class="ic-body">Connect to Tempo public RPC or self-hosted node. Execute real DEX swaps, TIP-20 transfers, session renewals, nonce queries via mppx TypeScript SDK.</div>
+    <div class="ic-why"><b>This is the only new dependency.</b> Everything else from hackathon stays. mppx is Tempo's official SDK. Start with public RPC, self-host later for reliability.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>What you DON'T need</h3></div>
+    <div class="ic-body" style="color:var(--t)">No Redis. No message queue. No Postgres. No Kubernetes. No Docker. No separate microservices. No load balancer. Just npm install and it works.</div>
+    <div class="ic-why"><b>Resist over-architecture.</b> Phase 1 goal: prove real money flows through PCEC correctly. One successful DEX swap repair in production is worth more than a perfect K8s setup.</div>
+  </div>
+</div>
+</div>
+
+<div class="sec"><div class="sec-title">Deliverables</div>
+<div class="del">
+  <div class="del-item"><div class="del-check">1</div><div class="label"><b>Real Commit execution</b> — swap_currency calls Tempo DEX, renew_session calls MPP API, refresh_nonce queries RPC</div><div class="del-time">5 days</div></div>
+  <div class="del-item"><div class="del-check">2</div><div class="label"><b>End-to-end test</b> — trigger real 402 on testnet, PCEC repairs, payment succeeds, Gene stored</div><div class="del-time">3 days</div></div>
+  <div class="del-item"><div class="del-check">3</div><div class="label"><b>Gene Map migration</b> — add source/confidence fields, expiry column, migration system for schema updates</div><div class="del-time">1 day</div></div>
+  <div class="del-item"><div class="del-check">4</div><div class="label"><b>Safety guards</b> — monthly budget cap enforcement, per-repair cost ceiling, wallet key isolation</div><div class="del-time">1 day</div></div>
+  <div class="del-item"><div class="del-check">5</div><div class="label"><b>npm publish</b> — @helix-agent/core on npm registry, README, TypeDoc API docs, example project</div><div class="del-time">2 days</div></div>
+  <div class="del-item"><div class="del-check">6</div><div class="label"><b>Multi-platform adapter system</b> — Tempo (13 scenarios), Privy (4 scenarios), Generic HTTP (3 scenarios), pluggable adapter registry</div><div class="del-time">done</div></div>
+</div>
+</div>
+
+<div class="sec"><div class="sec-title">Infrastructure summary</div>
+<table class="sum">
+  <tr><th>Component</th><th>Choice</th></tr>
+  <tr><td>Servers</td><td>0 (library, not service)</td></tr>
+  <tr><td>Database</td><td>SQLite (embedded)</td></tr>
+  <tr><td>Cache</td><td>none</td></tr>
+  <tr><td>Message queue</td><td>none</td></tr>
+  <tr><td>External APIs</td><td>Tempo RPC + mppx SDK</td></tr>
+  <tr><td>Deploy complexity</td><td>npm install</td></tr>
+</table>
+<div class="cost-card"><div class="cost-amt" style="color:var(--green)">~$0</div><div class="cost-label">Monthly infrastructure cost<br>SDK runs in agent's existing process</div></div>
+</div>
+</div>
+
+<!-- ═══════ PHASE 2 ═══════ -->
+<div class="ph" id="p1">
+<div class="ph-hdr">
+  <h2 style="color:var(--amber)">Phase 2: Intelligence Layer</h2>
+  <div class="meta"><span>Timeline: <b>2 weeks</b></span><span>Team: <b>1-2 engineers</b></span><span>Infra cost: <b>~$50-150/mo</b></span></div>
+  <p>Add LLM Fallback for unknown failures, upgrade Gene Map to shared Postgres, add Redis caching on the critical path, and build the event replay system for debugging and audit.</p>
+</div>
+
+<div class="sec"><div class="sec-title">Infrastructure</div>
+<div class="infra">
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Helix API server</h3></div>
+    <div class="ic-tags"><span class="tag tag-sv">Node.js</span><span class="tag tag-sv">Express</span></div>
+    <div class="ic-body">Same SDK process. Adds LLM Fallback: on Gene Map miss, sends failure context to Claude/GPT API, validates candidates in sandbox, stores result as new Gene with confidence:0.6.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Gene Map → PostgreSQL</h3></div>
+    <div class="ic-tags"><span class="tag tag-db">PostgreSQL 16</span><span class="tag tag-db">Supabase or RDS</span></div>
+    <div class="ic-body">Upgrade from SQLite when 2+ agent instances need shared Gene data. Adds columns: source ('pcec'|'llm'|'human'), confidence (0-1), expires_at. Full migration system.</div>
+    <div class="ic-why"><b>Trigger:</b> Switch when you have 2+ instances. If still single-instance, SQLite is fine. Don't upgrade prematurely.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Redis cache</h3></div>
+    <div class="ic-tags"><span class="tag tag-ca">Redis 7</span><span class="tag tag-ca">Upstash or ElastiCache</span></div>
+    <div class="ic-body">Cache hot Gene lookups. PCEC Perceive checks Redis first (sub-ms), falls back to Postgres (5ms). TTL = 5 min. Invalidate on Gene store.</div>
+    <div class="ic-why"><b>Why now:</b> Gene lookup is on every payment's critical path. At 100+ repairs/min, 5ms Postgres round-trip adds up. Redis gives you &lt;1ms.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>LLM API (Claude/GPT)</h3></div>
+    <div class="ic-tags"><span class="tag tag-ext">Claude API</span><span class="tag tag-ext">OpenAI API</span></div>
+    <div class="ic-body">Unknown failure handler. Only called on Gene Map MISS (~5% initially, drops to 1-2% after first weeks). Each call creates a Gene → same failure never triggers LLM twice.</div>
+    <div class="ic-why"><b>Cost model:</b> ~$0.01 per LLM call × 2% miss rate × 1000 repairs/day = ~$0.20/day. Converges to near-zero as Gene Map fills up.</div>
+  </div>
+  <div class="infra-card full">
+    <div class="ic-hdr"><h3>Event log / replay store</h3></div>
+    <div class="ic-tags"><span class="tag tag-db">PostgreSQL</span><span class="tag tag-mq">NATS JetStream (optional)</span></div>
+    <div class="ic-body">Every PCEC step logged as append-only event. Enables: deterministic replay ("why did it swap instead of retry?"), audit trails, debugging. Postgres append-only table for storage. NATS JetStream only if you need real-time streaming to multiple consumers (dashboard, alerting).</div>
+    <div class="ic-why"><b>Start simple:</b> Postgres append-only table. Add NATS only when you need real-time event streaming to 3+ consumers.</div>
+  </div>
+</div>
+</div>
+
+<div class="sec"><div class="sec-title">Key decisions</div>
+<table class="dec">
+  <tr><th>Question</th><th>Answer</th><th>Reasoning</th></tr>
+  <tr><td>When to switch from SQLite?</td><td>2+ instances</td><td>SQLite is single-process. The moment you run two agents sharing repair knowledge, you need Postgres.</td></tr>
+  <tr><td>Redis vs in-memory cache?</td><td>Redis</td><td>Process restarts lose in-memory. Redis persists across restarts and can be shared across instances.</td></tr>
+  <tr><td>Claude vs GPT for fallback?</td><td>Both, with failover</td><td>Call Claude primary, GPT fallback. If Claude is down, don't let unknown failures go unhandled.</td></tr>
+  <tr><td>NATS vs Redis pub/sub?</td><td>Skip for now</td><td>Redis pub/sub loses messages when subscriber is offline. But you don't need real-time broadcast yet. Postgres polling is fine.</td></tr>
+</table>
+</div>
+
+<div class="sec"><div class="sec-title">Phase 2 Platform Expansion</div>
+<div class="del">
+  <div class="del-item"><div class="del-check" style="background:var(--amber)">A</div><div class="label"><b>Privy wallet failure handling</b> — nonce desync, gas sponsor depletion, cross-chain mismatch, policy spending limits</div><div class="del-time">done</div></div>
+  <div class="del-item"><div class="del-check" style="background:var(--purple)">B</div><div class="label"><b>Stripe adapter</b> — card_declined, expired_card, rate_limit (placeholder → full implementation)</div><div class="del-time">1 week</div></div>
+  <div class="del-item"><div class="del-check" style="background:var(--teal)">C</div><div class="label"><b>Cross-platform Gene immunity</b> — proven: Tempo Genes heal Privy failures automatically</div><div class="del-time">done</div></div>
+</div>
+</div>
+
+<div class="sec"><div class="sec-title">Infrastructure summary</div>
+<table class="sum">
+  <tr><th>Component</th><th>Choice</th></tr>
+  <tr><td>Servers</td><td>1 (API + PCEC, can be same box)</td></tr>
+  <tr><td>Database</td><td>PostgreSQL 16 (shared Gene Map + event log)</td></tr>
+  <tr><td>Cache</td><td>Redis 7 (Gene lookup hot path)</td></tr>
+  <tr><td>Message queue</td><td>none yet (Postgres polling)</td></tr>
+  <tr><td>External APIs</td><td>Tempo RPC + Claude API + OpenAI API</td></tr>
+  <tr><td>Deploy</td><td>Docker Compose (3-4 containers)</td></tr>
+</table>
+<div class="cost-card"><div class="cost-amt" style="color:var(--amber)">~$80/mo</div><div class="cost-label">Postgres $25 (Supabase) + Redis $15 (Upstash) + LLM ~$20 + server $20<br>Scales to ~$150 at 10K repairs/day</div></div>
+</div>
+</div>
+
+<!-- ═══════ PHASE 3 ═══════ -->
+<div class="ph" id="p2">
+<div class="ph-hdr">
+  <h2 style="color:var(--purple)">Phase 3: Network Layer</h2>
+  <div class="meta"><span>Timeline: <b>2 weeks</b></span><span>Team: <b>1-2 engineers</b></span><span>Infra cost: <b>~$300-800/mo</b></span></div>
+  <p>The architecture complexity jump. From single-process library to distributed system. Gene Registry server, NATS message broker, agent mesh, on-chain smart contracts. This is where the network effect starts.</p>
+</div>
+
+<div class="sec"><div class="sec-title">Infrastructure</div>
+<div class="infra">
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Gene Registry server</h3></div>
+    <div class="ic-tags"><span class="tag tag-sv">Node.js or Go</span><span class="tag tag-sv">REST + WebSocket</span></div>
+    <div class="ic-body">NEW service. Receives Gene pushes from all agents, deduplicates, quality-scores (successRate × usage × proof), broadcasts to subscribers. Serves helix gene push/pull CLI commands.</div>
+    <div class="ic-why"><b>Why separate service:</b> Cannot run inside SDK. Needs to be always-on, handle concurrent pushes from hundreds of agents, deduplicate efficiently. This is your "npm registry" for Genes.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>NATS JetStream</h3></div>
+    <div class="ic-tags"><span class="tag tag-mq">NATS</span><span class="tag tag-mq">JetStream</span></div>
+    <div class="ic-body">Required now. Gene broadcast to all subscribed agents. Agent subscribes to error codes it cares about. NATS handles: pub/sub, persistent delivery, replay from offset.</div>
+    <div class="ic-why"><b>Why NATS not Kafka:</b> Gene broadcast doesn't need Kafka's throughput (millions/sec). NATS is lighter, JetStream adds persistence. Kafka is overkill until 10K+ agents.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>PostgreSQL cluster</h3></div>
+    <div class="ic-tags"><span class="tag tag-db">PostgreSQL 16</span><span class="tag tag-db">Primary + read replica</span><span class="tag tag-db">pgvector (optional)</span></div>
+    <div class="ic-body">All published Genes. Indexed by failure_code, category, chain, success_rate. Read replica for Registry queries (high read volume). pgvector if you want "find Gene closest to this failure pattern" similarity search.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Redis cluster</h3></div>
+    <div class="ic-tags"><span class="tag tag-ca">Redis Cluster</span><span class="tag tag-ca">3 nodes</span></div>
+    <div class="ic-body">Gene lookup cache for all agents. Registry popularity rankings. Rate limiting for push/pull API. WebSocket session store for mesh connections.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Tempo smart contracts</h3></div>
+    <div class="ic-tags"><span class="tag tag-sc">Solidity</span><span class="tag tag-sc">Tempo mainnet</span></div>
+    <div class="ic-body">On-chain Gene anchoring: store Gene hash + proof. $HELIX ERC-20 token on Tempo. Staking contract for Gene quality. Governance contract for protocol parameters.</div>
+    <div class="ic-why"><b>Trust layer:</b> Without contracts, Registry is centralized. With them, anyone can verify Gene proofs and the registry can't censor contributions.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Agent mesh relay</h3></div>
+    <div class="ic-tags"><span class="tag tag-sv">WebSocket relay</span><span class="tag tag-ext">→ libp2p later</span></div>
+    <div class="ic-body">Agent-to-agent communication for cascade scenarios (A→B→C). State sharing, coordinated rollback, distributed SAGA. Start with WebSocket relay server. Migrate to libp2p for true P2P later.</div>
+    <div class="ic-why"><b>Start centralized:</b> WebSocket relay is 1 week to build. libp2p is 6 weeks. Get the flow working first, decentralize later.</div>
+  </div>
+</div>
+</div>
+
+<div class="sec"><div class="sec-title">Key decisions</div>
+<table class="dec">
+  <tr><th>Question</th><th>Answer</th><th>Reasoning</th></tr>
+  <tr><td>NATS vs Kafka?</td><td>NATS JetStream</td><td>10x lighter. JetStream adds persistence. Kafka only at 10K+ agents with millions of events/sec.</td></tr>
+  <tr><td>pgvector needed?</td><td>Nice-to-have</td><td>Exact match on failure_code covers 95%. Similarity search helps with "close but not identical" failures. Add when you have data to prove it helps.</td></tr>
+  <tr><td>WebSocket vs libp2p?</td><td>WebSocket first</td><td>1 week vs 6 weeks. Get mesh working. Decentralize later. Most agents are behind NATs anyway.</td></tr>
+  <tr><td>Token on Tempo vs L2?</td><td>Tempo native</td><td>You're building FOR Tempo. Token on Tempo means Gene anchoring + token transfers are same-chain atomic.</td></tr>
+  <tr><td>Kubernetes needed?</td><td>Yes, now</td><td>5+ services, NATS, Postgres cluster, Redis cluster. Docker Compose won't cut it for reliability.</td></tr>
+</table>
+</div>
+
+<div class="sec"><div class="sec-title">Infrastructure summary</div>
+<table class="sum">
+  <tr><th>Component</th><th>Choice</th></tr>
+  <tr><td>Servers</td><td>3 (API, Registry, Mesh relay)</td></tr>
+  <tr><td>Database</td><td>PostgreSQL cluster (primary + read replica)</td></tr>
+  <tr><td>Cache</td><td>Redis Cluster (3 nodes)</td></tr>
+  <tr><td>Message queue</td><td>NATS JetStream (Gene broadcast + events)</td></tr>
+  <tr><td>Smart contracts</td><td>$HELIX token + Gene anchor + staking</td></tr>
+  <tr><td>Deploy</td><td>Kubernetes (8-12 pods)</td></tr>
+</table>
+<div class="cost-card"><div class="cost-amt" style="color:var(--purple)">~$500/mo</div><div class="cost-label">3 servers ($150) + Postgres ($80) + Redis ($50) + NATS ($30) + K8s ($100) + Tempo gas ($50)<br>Scales to ~$800 at 100 agents</div></div>
+</div>
+</div>
+
+<!-- ═══════ PHASE 4 ═══════ -->
+<div class="ph" id="p3">
+<div class="ph-hdr">
+  <h2 style="color:var(--teal)">Phase 4: Full Operating System</h2>
+  <div class="meta"><span>Timeline: <b>2 weeks</b></span><span>Team: <b>1-2 engineers</b></span><span>Infra cost: <b>~$1,500-3,000/mo</b></span></div>
+  <p>Natural language objectives → task decomposition → DAG execution → PCEC at every step. Uses Claude/GPT for intent parsing (don't build your own NLU). Temporal.io for orchestration (don't build your own scheduler).</p>
+</div>
+
+<div class="sec"><div class="sec-title">Infrastructure</div>
+<div class="infra">
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>ODE intent server</h3></div>
+    <div class="ic-tags"><span class="tag tag-sv">Node.js</span><span class="tag tag-ext">Claude API</span></div>
+    <div class="ic-body">Receives natural language objectives. Calls Claude for intent parsing → structured JSON task graph. Validates output. Builds DAG. Hands off to Temporal orchestrator.</div>
+    <div class="ic-why"><b>Don't build NLU.</b> Claude/GPT do intent parsing. You build the validation + DAG construction + execution framework. LLM = brain. Helix = hands + immune system.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Temporal.io orchestrator</h3></div>
+    <div class="ic-tags"><span class="tag tag-sv">Temporal server</span><span class="tag tag-sv">Worker pool</span></div>
+    <div class="ic-body">Executes task DAGs with durability. Each task node is a Temporal Activity wrapped in PCEC. Handles: parallel execution, conditional branches, timeout, retry, rollback, visibility.</div>
+    <div class="ic-why"><b>Don't build your own orchestrator.</b> Temporal gives you: durable execution, automatic retry, workflow persistence, replay, visibility UI. Building this yourself = 3+ months. Temporal = 2 weeks to integrate.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Evolution worker</h3></div>
+    <div class="ic-tags"><span class="tag tag-sv">Python or Node.js</span><span class="tag tag-mq">NATS consumer</span></div>
+    <div class="ic-body">Background worker. Reads Gene usage data from NATS stream. Runs evolutionary parameter optimization on slippage, splitCount, maxWait. Writes optimized params back to Postgres.</div>
+    <div class="ic-why"><b>Not on critical path.</b> Runs hourly or triggered by enough new data. Can start as a cron job. Doesn't touch real-time repair flow.</div>
+  </div>
+  <div class="infra-card">
+    <div class="ic-hdr"><h3>Predictive engine</h3></div>
+    <div class="ic-tags"><span class="tag tag-sv">Python</span><span class="tag tag-db">TimescaleDB</span></div>
+    <div class="ic-body">Time-series analysis on Gene Map data. Detects patterns: "Service X fails Mondays 2am." Pre-emptive routing before failure. TimescaleDB = Postgres extension for time-range queries.</div>
+    <div class="ic-why"><b>No new database.</b> TimescaleDB is a PostgreSQL extension. Add it to existing Postgres. No new ops burden.</div>
+  </div>
+  <div class="infra-card full">
+    <div class="ic-hdr"><h3>Complete system map</h3></div>
+    <div class="ic-body">
+      <div class="flow">
+        <div class="flow-node" style="border-color:var(--teal)"><h4 style="color:var(--teal)">User objective</h4><p>"Pay 100 employees"</p></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--blue)"><h4 style="color:var(--blue)">ODE + Claude</h4><p>Intent → task DAG</p></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--purple)"><h4 style="color:var(--purple)">Temporal.io</h4><p>DAG orchestration</p></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--amber)"><h4 style="color:var(--amber)">PCEC per task</h4><p>Self-heal at each step</p></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--green)"><h4 style="color:var(--green)">Gene Map</h4><p>Learn + evolve</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="sec"><div class="sec-title">Key decisions</div>
+<table class="dec">
+  <tr><th>Question</th><th>Answer</th><th>Reasoning</th></tr>
+  <tr><td>Build NLU or use LLM?</td><td>Claude/GPT API</td><td>Intent parsing goes from 12 weeks to 2 weeks. LLM understands "pay 100 employees in 5 currencies." You validate + execute.</td></tr>
+  <tr><td>Build orchestrator or Temporal?</td><td>Temporal.io</td><td>DAG scheduling is a solved problem. Building your own: 3 months. Temporal integration: 2 weeks. Plus free visibility UI.</td></tr>
+  <tr><td>TimescaleDB or InfluxDB?</td><td>TimescaleDB</td><td>It's a Postgres extension. No new database. No new ops. Same SQL you already know.</td></tr>
+  <tr><td>Evolution: Python or Node?</td><td>Python</td><td>Better ML ecosystem (numpy, scipy for parameter optimization). But Node works too if you prefer one language.</td></tr>
+</table>
+</div>
+
+<div class="sec"><div class="sec-title">Infrastructure summary</div>
+<table class="sum">
+  <tr><th>Component</th><th>Choice</th></tr>
+  <tr><td>Servers</td><td>5-7 (API, Registry, ODE, Temporal, Evolution, Predictive, Mesh)</td></tr>
+  <tr><td>Database</td><td>PostgreSQL + TimescaleDB (primary + 2 replicas)</td></tr>
+  <tr><td>Cache</td><td>Redis Cluster (3+ nodes)</td></tr>
+  <tr><td>Message queue</td><td>NATS JetStream (Gene broadcast + events + evolution data)</td></tr>
+  <tr><td>Workflow engine</td><td>Temporal.io (2 servers + worker pool)</td></tr>
+  <tr><td>Smart contracts</td><td>$HELIX + Gene anchor + staking + governance</td></tr>
+  <tr><td>Monitoring</td><td>Grafana + Prometheus</td></tr>
+  <tr><td>Deploy</td><td>Kubernetes cluster (15-20 pods, 3 namespaces)</td></tr>
+</table>
+<div class="cost-card"><div class="cost-amt" style="color:var(--teal)">~$2,000/mo</div><div class="cost-label">7 servers ($400) + Postgres cluster ($150) + Redis ($80) + NATS ($50) + Temporal ($200) + LLM API ($200) + Tempo gas ($100) + K8s ($400) + monitoring ($50)<br>Scales to ~$3,000 at 1,000 agents</div></div>
+</div>
+</div>
+
+</div>
+
+<script>
+function go(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',j===i));
+  document.querySelectorAll('.ph').forEach((p,j)=>p.classList.toggle('on',j===i));
+  window.scrollTo({top:200,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

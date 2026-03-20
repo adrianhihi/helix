@@ -1,0 +1,11 @@
+{
+  "projectName": "my-agent",
+  "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18",
+  "stablecoins": ["USDC", "USDT", "DAI"],
+  "monthlyBudget": 10000,
+  "maxRetries": 3,
+  "timeoutMs": 30000,
+  "dashboardPort": 7842,
+  "verbose": true,
+  "geneMapPath": "./helix-genes.db"
+}

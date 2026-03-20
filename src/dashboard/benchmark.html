@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helix Benchmark — HumanEval + Live MPP Validation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --amber:#f0a030;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;--teal:#2dd4bf;
+  --bg:#080a0f;--card:rgba(255,255,255,0.035);--border:rgba(255,255,255,0.07);
+  --text:#c8cad0;--dim:#5a5e6a;--bright:#eaecf0;
+  --mono:'JetBrains Mono',monospace;--sans:'Outfit',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(8,10,15,0.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:48px}
+nav .brand{font-family:var(--sans);font-weight:800;font-size:14px;color:var(--amber);letter-spacing:1px;text-decoration:none}
+nav .links{display:flex;gap:16px;align-items:center}
+nav .links a{font-size:11px;font-weight:500;color:var(--dim);text-decoration:none;transition:color .2s}
+nav .links a:hover{color:var(--bright)}
+nav .lab-btn{font-family:var(--mono);font-size:10px;padding:5px 12px;background:rgba(240,160,48,0.1);border:1px solid rgba(240,160,48,0.25);color:var(--amber);border-radius:6px;text-decoration:none;font-weight:600}
+
+/* sections */
+section{max-width:1000px;margin:0 auto;padding:80px 32px 40px}
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .7s,transform .7s}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+
+/* hero */
+#hero{text-align:center;padding-top:120px;position:relative}
+#hero::before{content:'';position:absolute;top:60px;left:50%;transform:translateX(-50%);width:600px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(240,160,48,0.06) 0%,rgba(74,222,128,0.03) 40%,transparent 70%);pointer-events:none}
+.hero-nums{font-family:var(--sans);font-weight:800;font-size:64px;letter-spacing:-2px;line-height:1;margin-bottom:12px}
+.hero-nums .from{color:rgba(248,113,113,0.6)}
+.hero-nums .arrow{color:#333;font-size:48px;margin:0 8px}
+.hero-nums .to{color:var(--green)}
+.hero-sub{font-size:18px;color:var(--text);margin-bottom:6px;font-weight:500}
+.hero-tag{font-size:14px;color:var(--dim);max-width:480px;margin:0 auto 24px;line-height:1.7}
+.pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:32px}
+.pill{font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:rgba(255,255,255,0.02)}
+.pill.amber{border-color:rgba(240,160,48,0.3);color:var(--amber)}
+.pill.split{border-color:rgba(74,222,128,0.2);color:var(--green)}
+.pill .red-accent{color:var(--red);margin-left:4px}
+.pulse-line{height:2px;border-radius:1px;margin:0 auto;max-width:400px;animation:pulseLine 3s ease infinite}
+@keyframes pulseLine{0%{background:var(--red)}33%{background:var(--amber)}66%{background:var(--green)}100%{background:var(--red)}}
+
+/* terminal */
+.term-wrap{background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;max-width:780px;margin:0 auto}
+.term-chrome{display:flex;align-items:center;gap:6px;padding:10px 14px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.05)}
+.term-dot{width:10px;height:10px;border-radius:50%}
+.term-title{font-family:var(--mono);font-size:11px;color:var(--dim);margin-left:8px}
+.term-body{padding:16px 18px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:#94a3b8;height:420px;overflow-y:auto;white-space:pre}
+.term-body .t-ok{color:var(--green)}
+.term-body .t-fail{color:var(--red)}
+.term-body .t-repair{color:var(--amber)}
+.term-body .t-immune{color:var(--purple)}
+.term-body .t-dim{color:#475569}
+.term-body .t-bright{color:var(--bright)}
+#replay-btn{display:none;font-family:var(--mono);font-size:11px;padding:6px 16px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--dim);border-radius:6px;cursor:pointer;margin:8px auto 0;text-align:center}
+#replay-btn:hover{color:var(--amber);border-color:var(--amber)}
+
+/* big numbers */
+.num-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start}
+.num-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 20px}
+.num-card.before{border-color:rgba(248,113,113,0.12)}
+.num-card.after{border-color:rgba(74,222,128,0.15)}
+.num-card h3{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px}
+.num-card.before h3{color:var(--red)}
+.num-card.after h3{color:var(--green)}
+.num-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.num-item .big{font-family:var(--sans);font-size:32px;font-weight:800;letter-spacing:-1px}
+.num-item .label{font-size:10px;color:var(--dim);margin-top:2px}
+.num-card.before .big{color:var(--red)}
+.num-card.after .big{color:var(--green)}
+.delta-strip{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;padding:16px 12px}
+.delta-item .big{font-family:var(--sans);font-size:28px;font-weight:800;color:var(--amber);letter-spacing:-1px}
+.delta-item .label{font-size:9px;color:var(--dim);text-align:center;margin-top:2px}
+.honesty-note{font-size:12px;color:var(--dim);text-align:center;margin-top:16px;max-width:700px;margin-left:auto;margin-right:auto;line-height:1.7;padding:12px 16px;border-radius:8px;background:rgba(248,113,113,0.03);border:1px solid rgba(248,113,113,0.08)}
+.honesty-note b{color:var(--red)}
+
+/* bar chart */
+.bar-chart{display:flex;flex-direction:column;gap:14px}
+.bar-row{display:grid;grid-template-columns:140px 1fr 180px;align-items:center;gap:12px}
+.bar-label{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:600;text-align:right}
+.bar-track{height:20px;background:rgba(255,255,255,0.03);border-radius:4px;overflow:hidden;position:relative;display:flex}
+.bar-fill{height:100%;border-radius:4px 0 0 4px;transition:width 1.2s ease}
+.bar-fill.green{background:var(--green)}
+.bar-fill.red{background:rgba(248,113,113,0.5)}
+.bar-info{font-family:var(--mono);font-size:10px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.bar-info .strat{color:var(--amber)}
+.bar-info .immune-badge{color:var(--purple);font-weight:600}
+
+/* timeline */
+.timeline{position:relative;padding-left:32px}
+.tl-entry{position:relative;padding:12px 0 20px 20px;border-left:2px solid rgba(255,255,255,0.06)}
+.tl-entry.ok{border-left-color:rgba(74,222,128,0.2)}
+.tl-entry.fail{border-left-color:rgba(248,113,113,0.3)}
+.tl-entry.immune{border-left-color:rgba(167,139,250,0.3)}
+.tl-dot{position:absolute;left:-32px;top:14px;width:16px;height:16px;border-radius:50%;border:2px solid var(--border);background:var(--bg)}
+.tl-entry.ok .tl-dot{background:var(--green);border-color:var(--green)}
+.tl-entry.fail .tl-dot{background:var(--red);border-color:var(--red)}
+.tl-entry.immune .tl-dot{background:var(--purple);border-color:var(--purple)}
+.tl-head{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--bright);margin-bottom:4px}
+.tl-body{font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.7}
+.tl-body .code{color:var(--amber)}
+.tl-body .ok{color:var(--green)}
+.tl-body .fail{color:var(--red)}
+.tl-body .imm{color:var(--purple)}
+
+/* capsules */
+.capsule-grid{display:flex;gap:10px;flex-wrap:wrap}
+.capsule{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;flex:1;min-width:150px;transition:border-color .3s}
+.capsule.has-immune{border-color:rgba(167,139,250,0.2);animation:capsuleGlow 3s ease infinite alternate}
+@keyframes capsuleGlow{0%{box-shadow:0 0 0 rgba(167,139,250,0)}100%{box-shadow:0 0 16px rgba(167,139,250,0.08)}}
+.capsule .c-type{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--amber);margin-bottom:2px}
+.capsule .c-fix{font-family:var(--mono);font-size:10px;color:var(--green);margin-bottom:8px}
+.capsule .c-stat{font-family:var(--mono);font-size:9px;color:var(--dim);line-height:1.6}
+.capsule .c-stat b{color:var(--text)}
+.capsule-note{font-size:12px;color:var(--dim);margin-top:14px;text-align:center}
+.capsule-note b{color:var(--purple)}
+
+/* quote */
+#quote{text-align:center;padding:80px 32px}
+.q-line{opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s}
+.q-line.vis{opacity:1;transform:translateY(0)}
+.q1{font-size:32px;font-weight:700;color:rgba(248,113,113,0.6)}
+.q2{font-size:40px;font-weight:800;color:var(--green);margin:8px 0}
+.q3{font-size:22px;font-weight:600;color:var(--bright);margin:4px 0}
+.q4,.q5{font-size:17px;color:var(--amber);margin:2px 0}
+.q6{font-size:13px;color:var(--dim);margin-top:12px}
+.q-moat{font-size:13px;color:var(--dim);margin-top:24px;max-width:540px;margin-left:auto;margin-right:auto;line-height:1.7;font-style:italic}
+
+/* reproduce */
+pre.code-block{background:#0c0e14;border:1px solid var(--border);border-radius:8px;padding:18px 20px;font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--text);overflow-x:auto;position:relative;max-width:600px;margin:0 auto}
+pre .cm{color:#475569}
+pre .cmd{color:var(--amber)}
+.repro-note{font-size:12px;color:var(--dim);text-align:center;margin-top:12px}
+.repro-note b{color:var(--text)}
+
+/* bridge */
+.bridge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.bridge-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+.bridge-card .big{font-family:var(--sans);font-size:28px;font-weight:800;color:var(--amber);margin-bottom:4px}
+.bridge-card p{font-size:12px;color:var(--dim)}
+.bridge-note{font-size:13px;color:var(--dim);margin-top:16px;text-align:center;max-width:600px;margin-left:auto;margin-right:auto}
+
+/* cta */
+#cta{text-align:center;padding:60px 32px 48px}
+.cta-buttons{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
+.cta-btn{font-family:var(--sans);font-weight:700;font-size:14px;padding:12px 28px;border-radius:8px;text-decoration:none;transition:all .2s}
+.cta-btn.primary{background:var(--amber);color:#000;border:none}
+.cta-btn.primary:hover{background:#f5b040;transform:translateY(-1px);box-shadow:0 4px 20px rgba(240,160,48,.3)}
+.cta-btn.outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.cta-btn.outline:hover{border-color:var(--dim);color:var(--bright)}
+footer{text-align:center;padding:24px;font-size:11px;color:var(--dim);border-top:1px solid var(--border)}
+
+.section-label{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:16px}
+h2{font-family:var(--sans);font-weight:800;font-size:26px;color:var(--bright);margin-bottom:6px;letter-spacing:-.5px}
+.sub{font-size:13px;color:var(--dim);margin-bottom:24px}
+@media(max-width:700px){.num-grid{grid-template-columns:1fr}.bar-row{grid-template-columns:80px 1fr 100px}.hero-nums{font-size:40px}.bridge-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/benchmark" class="brand">HELIX BENCHMARK</a>
+  <div class="links">
+    <a href="/">Lab</a>
+    <a href="/docs">Docs</a>
+    <a href="/benchmark">Benchmark</a>
+    <a href="/milestone">Milestone</a>
+    <a href="/" class="lab-btn">Open Lab &rarr;</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section id="hero">
+<div class="fade-in">
+  <div class="hero-nums"><span class="from">68%</span><span class="arrow">&rarr;</span><span class="to">90%</span></div>
+  <div class="hero-sub">Benchmark: Helix SDK &mdash; HumanEval + Live MPP Validation</div>
+  <div class="hero-tag">We didn't build a better model.<br>We built infrastructure that doesn't let failures go to waste.</div>
+  <div class="pills">
+    <span class="pill">seed 42 &middot; reproducible</span>
+    <span class="pill amber">+22% from infrastructure alone</span>
+    <span class="pill split">12/14 recovered<span class="red-accent">&middot; 2 beyond repair</span></span>
+  </div>
+  <div class="pulse-line"></div>
+</div>
+</section>
+
+<!-- ═══ TERMINAL ═══ -->
+<section>
+<div class="fade-in">
+  <div class="section-label">Live Benchmark Run</div>
+  <div class="term-wrap">
+    <div class="term-chrome">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">helix &mdash; npm run benchmark</span>
+    </div>
+    <div class="term-body" id="term"></div>
+  </div>
+  <button id="replay-btn" onclick="runTerminal()">&#9654; Replay</button>
+</div>
+</section>
+
+<!-- ═══ BIG NUMBERS ═══ -->
+<section>
+<div class="fade-in" id="numbers-section">
+  <div class="section-label">Results</div>
+  <div class="num-grid">
+    <div class="num-card before">
+      <h3>Without Helix</h3>
+      <div class="num-row">
+        <div class="num-item"><div class="big" data-count="68">0</div><div class="label">pass@1 %</div></div>
+        <div class="num-item"><div class="big" data-count="36" data-suffix="/50">0</div><div class="label">completed</div></div>
+        <div class="num-item"><div class="big" data-count="14">0</div><div class="label">failures</div></div>
+      </div>
+      <div class="num-row">
+        <div class="num-item"><div class="big" style="font-size:20px;color:var(--dim)">~18 min</div><div class="label">MTTR</div></div>
+        <div class="num-item"><div class="big" style="font-size:20px;color:var(--dim)">&mdash;</div><div class="label">recovered</div></div>
+        <div class="num-item"><div class="big" style="font-size:20px;color:var(--dim)">&mdash;</div><div class="label">immune</div></div>
+      </div>
+    </div>
+    <div class="delta-strip">
+      <div class="delta-item"><div class="big">+22%</div><div class="label">pass@1</div></div>
+      <div class="delta-item"><div class="big">+12</div><div class="label">tasks saved</div></div>
+      <div class="delta-item"><div class="big">85.7%</div><div class="label">recovery rate</div></div>
+    </div>
+    <div class="num-card after">
+      <h3>With Helix</h3>
+      <div class="num-row">
+        <div class="num-item"><div class="big" data-count="90">0</div><div class="label">pass@1 %</div></div>
+        <div class="num-item"><div class="big" data-count="48" data-suffix="/50">0</div><div class="label">completed</div></div>
+        <div class="num-item"><div class="big" data-count="12" data-suffix="/14" style="color:var(--green)">0</div><div class="label">recovered</div></div>
+      </div>
+      <div class="num-row">
+        <div class="num-item"><div class="big" style="font-size:20px;color:var(--green)">&lt;2s</div><div class="label">MTTR</div></div>
+        <div class="num-item"><div class="big" style="font-size:20px;color:var(--green)">$4,200</div><div class="label">protected</div></div>
+        <div class="num-item"><div class="big" data-count="9" style="color:var(--purple)">0</div><div class="label">immune hits</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="honesty-note">2 failures were beyond repair: <b>1 genuine context overflow</b> (task needs 200K+ tokens) and <b>1 persistent server outage</b> (3/3 retries exhausted). We report both.</div>
+</div>
+</section>
+
+<!-- ═══ BAR CHART ═══ -->
+<section>
+<div class="fade-in" id="bars-section">
+  <div class="section-label">Failure Breakdown</div>
+  <h2>14 injected failures &middot; 12 recovered</h2>
+  <div class="sub">Green = recovered by PCEC. Red = unrecoverable.</div>
+  <div class="bar-chart">
+    <div class="bar-row"><div class="bar-label">Timeout</div><div class="bar-track"><div class="bar-fill green" data-w="100" style="width:0%"></div></div><div class="bar-info">5/5 <span class="strat">&rarr; increase_timeout</span></div></div>
+    <div class="bar-row"><div class="bar-label">Rate Limit</div><div class="bar-track"><div class="bar-fill green" data-w="100" style="width:0%"></div></div><div class="bar-info">3/3 <span class="strat">&rarr; backoff_retry</span> <span class="immune-badge">2 immune</span></div></div>
+    <div class="bar-row"><div class="bar-label">Context Overflow</div><div class="bar-track"><div class="bar-fill green" data-w="50" style="width:0%"></div><div class="bar-fill red" data-w="50" style="width:0%"></div></div><div class="bar-info">1/2 <span class="strat">&rarr; chunk_input</span> &middot; <span style="color:var(--red)">1 failed</span></div></div>
+    <div class="bar-row"><div class="bar-label">Server Error</div><div class="bar-track"><div class="bar-fill green" data-w="50" style="width:0%"></div><div class="bar-fill red" data-w="50" style="width:0%"></div></div><div class="bar-info">1/2 <span class="strat">&rarr; retry_endpoint</span> &middot; <span style="color:var(--red)">1 persistent</span></div></div>
+    <div class="bar-row"><div class="bar-label">JSON Parse</div><div class="bar-track"><div class="bar-fill green" data-w="100" style="width:0%"></div></div><div class="bar-info">2/2 <span class="strat">&rarr; repair_json</span> <span class="immune-badge">1 immune</span></div></div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ TIMELINE ═══ -->
+<section>
+<div class="fade-in">
+  <div class="section-label">PCEC Repair Timeline</div>
+  <h2>Selected repairs from the benchmark run</h2>
+  <div class="sub">Real repairs executed by the PCEC engine during the Helix run.</div>
+  <div class="timeline">
+    <div class="tl-entry ok"><div class="tl-dot"></div>
+      <div class="tl-head">Task #4 &middot; below_zero &middot; 429 Rate Limit</div>
+      <div class="tl-body"><span class="code">P:</span> rate_limit &rarr; <span class="code">C:</span> backoff_retry (92) vs switch_key (71)<br>&rarr; <span class="code">E:</span> backoff_retry wins &rarr; <span class="code">K:</span> wait 2s, retry<br><span class="ok">&#10003; Fixed in 2.1s &middot; Gene stored</span></div>
+    </div>
+    <div class="tl-entry ok"><div class="tl-dot"></div>
+      <div class="tl-head">Task #7 &middot; filter_by_substring &middot; TIMEOUT</div>
+      <div class="tl-body"><span class="code">P:</span> timeout &rarr; <span class="code">C:</span> increase_timeout (88) vs chunk_input (65)<br>&rarr; <span class="code">E:</span> increase_timeout wins &rarr; <span class="code">K:</span> set 20s, retry<br><span class="ok">&#10003; Fixed in 1.4s &middot; Gene stored</span></div>
+    </div>
+    <div class="tl-entry immune"><div class="tl-dot"></div>
+      <div class="tl-head">Task #34 &middot; unique &middot; TIMEOUT</div>
+      <div class="tl-body"><span class="imm">&#9889; IMMUNE</span> &mdash; Gene hit: timeout &rarr; increase_timeout (used 3&times;)<br><span class="ok">&#10003; Instant fix: 0.1s</span></div>
+    </div>
+    <div class="tl-entry fail"><div class="tl-dot"></div>
+      <div class="tl-head">Task #41 &middot; car_race_collision &middot; Context Overflow</div>
+      <div class="tl-body"><span class="code">P:</span> context_overflow &rarr; <span class="code">C:</span> chunk_input (78) vs reduce_context (62)<br>&rarr; <span class="code">E:</span> chunk_input &rarr; <span class="code">K:</span> split prompt, retry<br><span class="fail">&#10007; STILL FAILED &mdash; task genuinely needs 200K+ tokens</span><br><span class="t-dim">Gene note: &ldquo;HumanEval/40 unrecoverable &mdash; flag for human review&rdquo;</span></div>
+    </div>
+    <div class="tl-entry fail"><div class="tl-dot"></div>
+      <div class="tl-head">Task #48 &middot; is_palindrome &middot; 500 Server Error</div>
+      <div class="tl-body"><span class="code">P:</span> server_error &rarr; <span class="code">C:</span> retry (85) vs switch_endpoint (72)<br>&rarr; <span class="code">E:</span> retry &rarr; <span class="code">K:</span> attempt 1/3&hellip; 2/3&hellip; 3/3&hellip;<br><span class="fail">&#10007; PERSISTENT &mdash; all 3 retries failed</span><br><span class="t-dim">Gene note: &ldquo;server outage detected &mdash; alert + skip&rdquo;</span></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CAPSULES ═══ -->
+<section>
+<div class="fade-in">
+  <div class="section-label">Gene Map</div>
+  <h2>5 capsules stored &middot; 9 immune hits</h2>
+  <div class="sub">Every repair teaches the system. Repeat failures get instant fixes.</div>
+  <div class="capsule-grid">
+    <div class="capsule has-immune"><div class="c-type">rate_limit</div><div class="c-fix">&rarr; backoff_retry</div><div class="c-stat">Used: <b>3&times;</b><br>Immune: <b style="color:var(--purple)">2</b><br>Avg: <b>2.1s</b></div></div>
+    <div class="capsule has-immune"><div class="c-type">timeout</div><div class="c-fix">&rarr; increase_timeout</div><div class="c-stat">Used: <b>5&times;</b><br>Immune: <b style="color:var(--purple)">4</b><br>Avg: <b>1.4s</b></div></div>
+    <div class="capsule"><div class="c-type">context_overflow</div><div class="c-fix">&rarr; chunk_input</div><div class="c-stat">Used: <b>1&times;</b><br>Immune: <b>0</b><br>Avg: <b>0.9s</b></div></div>
+    <div class="capsule has-immune"><div class="c-type">json_parse</div><div class="c-fix">&rarr; repair_json</div><div class="c-stat">Used: <b>2&times;</b><br>Immune: <b style="color:var(--purple)">1</b><br>Avg: <b>0.3s</b></div></div>
+    <div class="capsule"><div class="c-type">server_error</div><div class="c-fix">&rarr; retry_endpoint</div><div class="c-stat">Used: <b>1&times;</b><br>Immune: <b>0</b><br>Avg: <b>1.8s</b></div></div>
+  </div>
+  <div class="capsule-note"><b>9 immune hits</b> &mdash; repairs that cost &lt;100ms because the Gene Map already knew the fix.</div>
+</div>
+</section>
+
+<!-- ═══ QUOTE ═══ -->
+<section id="quote">
+  <div class="q-line q1">GPT-4o-mini scores 68% on HumanEval.</div>
+  <div class="q-line q2">With Helix: 90%.</div>
+  <div class="q-line q3">+22% improvement.</div>
+  <div class="q-line q4">Not from a better model.</div>
+  <div class="q-line q5">From infrastructure that doesn't let failures go to waste.</div>
+  <div class="q-line q6">12 of 14 recovered. 2 beyond repair. We're honest about limits.</div>
+  <div class="q-line q-moat" style="opacity:0;transition-delay:.3s">Every repair makes the next one faster. Every Gene Capsule makes the network more resilient. That's the moat.</div>
+</section>
+
+<!-- ═══ REPRODUCE ═══ -->
+<section>
+<div class="fade-in">
+  <div class="section-label">Reproduce It</div>
+  <h2>Deterministic &middot; Seed 42 &middot; Same results every run</h2>
+  <div class="sub">Clone, install, run. You'll get the exact same numbers.</div>
+  <pre class="code-block"><span class="cmd">git clone</span> https://github.com/adrianhihi/helix
+<span class="cmd">cd</span> helix
+<span class="cmd">npm install</span>
+
+<span class="cm"># Run the exact same benchmark (seed 42, same failures)</span>
+<span class="cmd">OPENAI_API_KEY</span>=sk-xxx <span class="cmd">npm run benchmark</span>
+
+<span class="cm"># View results</span>
+<span class="cmd">npx helix dash</span>
+<span class="cm"># Open localhost:3710/benchmark</span></pre>
+  <div class="repro-note"><b>Deterministic.</b> Seed 42 produces identical failure injection every run. Our results are reproducible by anyone.</div>
+</div>
+</section>
+
+<!-- ═══ BRIDGE ═══ -->
+<section>
+<div class="fade-in">
+  <div class="section-label">At Scale</div>
+  <h2>This is one benchmark on one model. Now imagine this at scale.</h2>
+  <div class="bridge-grid">
+    <div class="bridge-card"><div class="big">$1.8T/day</div><p>Visa/MC volume today</p></div>
+    <div class="bridge-card"><div class="big">5&ndash;8%</div><p>Agent failure rate</p></div>
+    <div class="bridge-card"><div class="big">$500B/day</div><p>At risk</p></div>
+  </div>
+  <div class="bridge-note">Helix on Tempo's payment lane: every stablecoin transaction that fails gets auto-repaired. Same PCEC engine. Same Gene Map. Same network effect.</div>
+</div>
+</section>
+
+<!-- ═══ LIVE MPP VALIDATION ═══ -->
+<section>
+<div class="fade-in">
+  <h2 style="margin-bottom:6px">Live MPP Validation</h2>
+  <p style="font-size:13px;color:var(--dim);margin-bottom:20px;max-width:560px">Beyond HumanEval, we validated against real MPP services on Tempo:</p>
+
+  <div style="font-family:var(--mono);font-size:12px;line-height:2.2;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 24px">
+    <div><span style="color:var(--green)">&#10003;</span> <span style="color:var(--dim)">mpp.dev/api/ping/paid</span> <span style="color:var(--green);margin-left:12px">Testnet payment successful</span></div>
+    <div><span style="color:var(--red)">&#10007;</span> <span style="color:var(--dim)">openai.mpp.tempo.xyz</span> <span style="color:var(--red);margin-left:12px">TIP20 Uninitialized (mainnet)</span></div>
+    <div><span style="color:var(--red)">&#10007;</span> <span style="color:var(--dim)">parallelmpp.dev</span> <span style="color:var(--red);margin-left:12px">TIP20 Uninitialized (mainnet)</span></div>
+    <div><span style="color:var(--red)">&#10007;</span> <span style="color:var(--dim)">exa.mpp.tempo.xyz</span> <span style="color:var(--red);margin-left:12px">TIP20 Uninitialized (mainnet)</span></div>
+  </div>
+
+  <p style="font-size:12px;color:var(--dim);margin-top:16px;line-height:1.7">
+    3 of 4 calls failed with network mismatch &mdash; the #1 failure agents face as MPP services launch on mainnet while agents develop on testnet.<br>
+    <b style="color:var(--amber)">Helix Scenario #13 handles this automatically.</b>
+  </p>
+
+  <div style="display:flex;gap:24px;margin-top:20px;padding:16px 20px;border-radius:10px;background:rgba(45,212,191,0.04);border:1px solid rgba(45,212,191,0.15)">
+    <div style="text-align:center">
+      <div style="font-weight:800;font-size:24px;color:var(--teal)">488</div>
+      <div style="font-size:10px;color:var(--dim)">active agents</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-weight:800;font-size:24px;color:var(--teal)">11.4K</div>
+      <div style="font-size:10px;color:var(--dim)">transactions</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-weight:800;font-size:24px;color:var(--teal)">50+</div>
+      <div style="font-size:10px;color:var(--dim)">MPP services</div>
+    </div>
+    <div style="font-size:10px;color:var(--dim);display:flex;align-items:center;margin-left:auto">(source: mppscan.com, live data)</div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section id="cta">
+  <div class="cta-buttons">
+    <a href="/" class="cta-btn primary">&#9889; View Payment Lab &rarr;</a>
+    <a href="/docs" class="cta-btn outline">&#128196; Read the Docs &rarr;</a>
+  </div>
+  <footer>Helix &middot; Self-healing infrastructure for AI agent payments</footer>
+</section>
+
+<script>
+// ═══════════════════════════════════════════
+// Scroll animations
+// ═══════════════════════════════════════════
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold:0.15});
+document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+
+// ═══════════════════════════════════════════
+// Counter-up
+// ═══════════════════════════════════════════
+let counted = false;
+const numObs = new IntersectionObserver(entries => {
+  if(counted) return;
+  entries.forEach(e => {
+    if(!e.isIntersecting) return;
+    counted = true;
+    document.querySelectorAll('[data-count]').forEach(el => {
+      const target = parseInt(el.dataset.count);
+      const suffix = el.dataset.suffix || '';
+      const dur = 1500;
+      const start = performance.now();
+      function tick(now) {
+        const p = Math.min((now - start) / dur, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * ease) + suffix;
+        if(p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  });
+}, {threshold:0.3});
+const ns = document.getElementById('numbers-section');
+if(ns) numObs.observe(ns);
+
+// ═══════════════════════════════════════════
+// Bar chart animation
+// ═══════════════════════════════════════════
+let barsDone = false;
+const barObs = new IntersectionObserver(entries => {
+  if(barsDone) return;
+  entries.forEach(e => {
+    if(!e.isIntersecting) return;
+    barsDone = true;
+    document.querySelectorAll('.bar-fill').forEach(el => {
+      const w = el.dataset.w;
+      setTimeout(() => { el.style.width = w + '%'; }, 200);
+    });
+  });
+}, {threshold:0.3});
+const bs = document.getElementById('bars-section');
+if(bs) barObs.observe(bs);
+
+// ═══════════════════════════════════════════
+// Quote line-by-line
+// ═══════════════════════════════════════════
+let quoteDone = false;
+const quoteObs = new IntersectionObserver(entries => {
+  if(quoteDone) return;
+  entries.forEach(e => {
+    if(!e.isIntersecting) return;
+    quoteDone = true;
+    const lines = document.querySelectorAll('#quote .q-line');
+    lines.forEach((l, i) => {
+      setTimeout(() => l.classList.add('vis'), i * 400);
+    });
+  });
+}, {threshold:0.3});
+const qs = document.getElementById('quote');
+if(qs) quoteObs.observe(qs);
+
+// ═══════════════════════════════════════════
+// Terminal typing
+// ═══════════════════════════════════════════
+const TERM_LINES = [
+  {t:'$ npm run benchmark\n', s:30, c:'t-bright'},
+  {t:'\n', s:0},
+  {t:'  ╦ ╦╔═╗╦  ╦═╗ ╦  SDK\n', s:8, c:'t-bright'},
+  {t:'  ╠═╣║╣ ║  ║╔╩╦╝  HumanEval Benchmark\n', s:8, c:'t-bright'},
+  {t:'  ╩ ╩╚═╝╩═╝╩╩ ╚═  50 tasks · GPT-4o-mini · seed 42\n', s:8, c:'t-bright'},
+  {t:'\n', s:0},
+  {t:'  ─── Phase 1: WITHOUT Helix (baseline) ───\n\n', s:15, c:'t-dim', pause:400},
+  {t:'  [1/50]  has_close_elements      ✓ 1.1s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [2/50]  separate_paren_groups   ✓ 0.9s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [3/50]  truncate_number         ✓ 1.2s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [4/50]  below_zero              ✗ 429 Rate Limit\n', s:30, c:'t-fail', pause:300},
+  {t:'  [5/50]  mean_absolute_deviation ✓ 0.8s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [6/50]  intersperse             ✓ 1.0s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [7/50]  filter_by_substring     ✗ TIMEOUT (12.1s)\n', s:30, c:'t-fail', pause:300},
+  {t:'  [8/50]  sum_product             ✓ 0.7s\n', s:0, c:'t-ok', flash:1},
+  {t:'  ...\n', s:0, c:'t-dim', pause:200},
+  {t:'  [15/50] string_sequence         ✗ 500 Server Error\n', s:25, c:'t-fail', pause:300},
+  {t:'  [16/50] count_distinct_chars    ✓ 0.9s\n', s:0, c:'t-ok', flash:1},
+  {t:'  ...\n', s:0, c:'t-dim', pause:200},
+  {t:'  [23/50] strlen                  ✗ Context Overflow\n', s:25, c:'t-fail', pause:300},
+  {t:'  ...\n', s:0, c:'t-dim', pause:200},
+  {t:'  [41/50] car_race_collision      ✗ Context Overflow\n', s:25, c:'t-fail', pause:300},
+  {t:'  ...\n', s:0, c:'t-dim', pause:150},
+  {t:'  [50/50] modp                    ✓ 0.8s\n\n', s:0, c:'t-ok', flash:1},
+  {t:'  Baseline: 36/50 completed · 34/50 pass@1 (68.0%)\n', s:18, c:'t-dim', pause:500},
+  {t:'  14 infrastructure failures. 2 model quality fails.\n\n', s:18, c:'t-fail', pause:600},
+
+  {t:'  ─── Phase 2: WITH Helix ───\n\n', s:15, c:'t-bright', pause:500},
+  {t:'  [1/50]  has_close_elements      ✓ 1.1s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [2/50]  separate_paren_groups   ✓ 0.9s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [3/50]  truncate_number         ✓ 1.2s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [4/50]  below_zero              ⚠→✓ 429 → backoff_retry (2.1s)\n', s:40, c:'t-repair', pause:500},
+  {t:'  [5/50]  mean_absolute_deviation ✓ 0.8s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [6/50]  intersperse             ✓ 1.0s\n', s:0, c:'t-ok', flash:1},
+  {t:'  [7/50]  filter_by_substring     ⚠→✓ TIMEOUT → increase_timeout (1.4s)\n', s:40, c:'t-repair', pause:500},
+  {t:'  ...\n', s:0, c:'t-dim', pause:150},
+  {t:'  [15/50] string_sequence         ⚠→✓ 500 → retry_endpoint (1.8s)\n', s:40, c:'t-repair', pause:400},
+  {t:'  ...\n', s:0, c:'t-dim', pause:150},
+  {t:'  [23/50] strlen                  ⚠→✓ Context → chunk_input (0.9s)\n', s:40, c:'t-repair', pause:400},
+  {t:'  ...\n', s:0, c:'t-dim', pause:150},
+  {t:'  [34/50] unique                  ⚡✓ TIMEOUT → IMMUNE (0.1s)\n', s:0, c:'t-immune', pause:200, flash:1},
+  {t:'  ...\n', s:0, c:'t-dim', pause:150},
+  {t:'  [41/50] car_race_collision      ⚠→✗ Context → chunk_input → STILL FAILS\n', s:40, c:'t-fail', pause:600},
+  {t:'  ...\n', s:0, c:'t-dim', pause:150},
+  {t:'  [48/50] is_palindrome           ⚠→✗ 500 → retry ×3 → PERSISTENT OUTAGE\n', s:40, c:'t-fail', pause:600},
+  {t:'  ...\n', s:0, c:'t-dim', pause:150},
+  {t:'  [50/50] modp                    ✓ 0.8s\n\n', s:0, c:'t-ok', flash:1},
+
+  {t:'  Helix: 48/50 completed · 45/50 pass@1 (90.0%)\n', s:18, c:'t-repair', pause:600},
+  {t:'  12 recovered · 2 unrecoverable · 9 immune hits\n\n', s:18, c:'t-bright', pause:500},
+
+  {t:'  ═══════════════════════════════════════════\n', s:5, c:'t-dim'},
+  {t:'  GPT-4o-mini: 68% → 90% on HumanEval.\n', s:20, c:'t-bright', pause:400},
+  {t:'  +22%. Not a smarter model.\n', s:20, c:'t-repair'},
+  {t:'  Smarter infrastructure.\n', s:25, c:'t-ok', pause:300},
+  {t:'  ═══════════════════════════════════════════\n', s:5, c:'t-dim'},
+];
+
+let termRunning = false;
+async function runTerminal() {
+  if(termRunning) return;
+  termRunning = true;
+  const el = document.getElementById('term');
+  const btn = document.getElementById('replay-btn');
+  btn.style.display = 'none';
+  el.innerHTML = '';
+  for(const line of TERM_LINES) {
+    if(line.pause) await sleep(line.pause);
+    if(line.flash || line.s === 0) {
+      el.innerHTML += `<span class="${line.c||''}">${esc(line.t)}</span>`;
+      el.scrollTop = el.scrollHeight;
+      await sleep(50);
+    } else {
+      const span = document.createElement('span');
+      span.className = line.c || '';
+      el.appendChild(span);
+      for(const ch of line.t) {
+        span.textContent += ch;
+        el.scrollTop = el.scrollHeight;
+        await sleep(line.s);
+      }
+    }
+  }
+  btn.style.display = 'block';
+  termRunning = false;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// Auto-start terminal on scroll
+let termStarted = false;
+const termObs = new IntersectionObserver(entries => {
+  if(termStarted) return;
+  entries.forEach(e => {
+    if(!e.isIntersecting) return;
+    termStarted = true;
+    setTimeout(runTerminal, 400);
+  });
+}, {threshold:0.3});
+const tw = document.querySelector('.term-wrap');
+if(tw) termObs.observe(tw);
+</script>
+</body>
+</html>

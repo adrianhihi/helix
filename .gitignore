@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.db
+helix.config.json
+.env
+.DS_Store
