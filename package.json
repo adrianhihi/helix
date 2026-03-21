@@ -14,6 +14,7 @@
     "demo:tempo": "tsx examples/demo-tempo/run.ts",
     "demo:privy": "tsx examples/demo-privy/run.ts",
     "demo:real": "tsx examples/real-http/run.ts",
+    "demo:chain": "tsx examples/real-chain/run.ts",
     "dash": "tsx dashboard/server.ts",
     "mcp": "tsx packages/mcp/src/server.ts",
     "typecheck": "tsc --noEmit -p packages/core/tsconfig.json"

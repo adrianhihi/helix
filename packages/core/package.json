@@ -1,6 +1,6 @@
 {
   "name": "@helix-agent/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Self-healing infrastructure for AI agent payments. Auto-repairs payment failures across Tempo, Privy, Stripe, and any HTTP service.",
   "type": "module",
   "main": "dist/index.js",
@@ -48,7 +48,8 @@
     "url": "https://github.com/adrianhihi/helix/issues"
   },
   "dependencies": {
-    "better-sqlite3": "^11.0.0"
+    "better-sqlite3": "^11.0.0",
+    "viem": "^2.47.5"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",

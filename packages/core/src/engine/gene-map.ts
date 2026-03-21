@@ -107,7 +107,7 @@ export class GeneMap {
       failureCode: gene.failureCode,
       category: gene.category,
       strategy: gene.strategy,
-      params: JSON.stringify(gene.params),
+      params: JSON.stringify(gene.params, (_k, v) => typeof v === 'bigint' ? v.toString() : v),
       successCount: gene.successCount,
       avgRepairMs: gene.avgRepairMs,
       platforms: JSON.stringify(gene.platforms),
