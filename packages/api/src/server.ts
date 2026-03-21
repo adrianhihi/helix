@@ -63,6 +63,24 @@ app.get('/.well-known/mpp', (_req, res) => {
   });
 });
 
+// Root path — returns 402 with MPP discovery (required for mppscan)
+app.get("/", (_req, res) => {
+  const paymentRequired = {
+    x402Version: 2,
+    error: "Payment required",
+    accepts: [{
+      scheme: "exact",
+      network: MPP_CONFIG.network,
+      amount: MPP_CONFIG.price,
+      asset: MPP_CONFIG.currency,
+      payTo: MPP_CONFIG.recipient,
+      maxTimeoutSeconds: 300,
+      extra: { name: "Helix", description: MPP_CONFIG.description },
+    }],
+  };
+  res.setHeader("PAYMENT-REQUIRED", Buffer.from(JSON.stringify(paymentRequired)).toString("base64"));
+  res.status(402).json(paymentRequired);
+});
 const PORT = parseInt(process.env.PORT || '3402', 10);
 
 app.listen(PORT, () => {
