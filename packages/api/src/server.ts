@@ -99,6 +99,7 @@ app.get('/openapi.json', (_req, res) => {
           summary: 'Diagnose a payment error and recommend repair strategy',
           tags: ['Repair'],
           'x-payment-info': { pricingMode: 'fixed', price: '0.001000', protocols: ['mpp', 'x402'] },
+          'x-bazaar': { schema: { properties: { input: { type: 'object', properties: { error: { type: 'string', description: 'Error message from failed payment' }, context: { type: 'object', description: 'Optional context' } }, required: ['error'] }, output: { type: 'object', properties: { success: { type: 'boolean' }, diagnosis: { type: 'object' }, recommendation: { type: 'object' }, immune: { type: 'boolean' }, explanation: { type: 'string' } } } } } },
           requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { error: { type: 'string', minLength: 1, description: 'The error message from the failed payment' }, context: { type: 'object', description: 'Optional context: agentId, walletAddress, chainId, etc.' } }, required: ['error'] } } } },
           responses: { '200': { description: 'Diagnosis result with recommended strategy', content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean' }, diagnosis: { type: 'object' }, recommendation: { type: 'object' }, immune: { type: 'boolean' }, explanation: { type: 'string' } } } } } }, '402': { description: 'Payment Required' } },
         },
@@ -109,14 +110,25 @@ app.get('/openapi.json', (_req, res) => {
           summary: 'Diagnose and execute a payment repair',
           tags: ['Repair'],
           'x-payment-info': { pricingMode: 'fixed', price: '0.001000', protocols: ['mpp', 'x402'] },
+          'x-bazaar': { schema: { properties: { input: { type: 'object', properties: { error: { type: 'string', description: 'Error message from failed payment' }, context: { type: 'object', description: 'Optional context' } }, required: ['error'] }, output: { type: 'object', properties: { success: { type: 'boolean' }, repaired: { type: 'boolean' }, strategy: { type: 'string' }, verified: { type: 'boolean' }, explanation: { type: 'string' } } } } } },
           requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { error: { type: 'string', minLength: 1, description: 'The error message from the failed payment' }, context: { type: 'object', description: 'Optional context' } }, required: ['error'] } } } },
           responses: { '200': { description: 'Repair result', content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean' }, repaired: { type: 'boolean' }, strategy: { type: 'string' }, verified: { type: 'boolean' }, explanation: { type: 'string' } } } } } }, '402': { description: 'Payment Required' } },
         },
       },
-      '/v1/status': { get: { operationId: 'status', summary: 'Gene Map health status', tags: ['Info'], responses: { '200': { description: 'Gene Map statistics', content: { 'application/json': { schema: { type: 'object' } } } } } } },
-      '/v1/platforms': { get: { operationId: 'platforms', summary: 'List supported platforms and scenario counts', tags: ['Info'], responses: { '200': { description: 'Platform list', content: { 'application/json': { schema: { type: 'object' } } } } } } },
-      '/health': { get: { operationId: 'health', summary: 'Health check', tags: ['Info'], responses: { '200': { description: 'Service health', content: { 'application/json': { schema: { type: 'object' } } } } } } },
+      '/v1/status': { get: { operationId: 'status', summary: 'Gene Map health status', tags: ['Info'], 'x-auth-mode': 'none', responses: { '200': { description: 'Gene Map statistics', content: { 'application/json': { schema: { type: 'object' } } } } } } },
+      '/v1/platforms': { get: { operationId: 'platforms', summary: 'List supported platforms and scenario counts', tags: ['Info'], 'x-auth-mode': 'none', responses: { '200': { description: 'Platform list', content: { 'application/json': { schema: { type: 'object' } } } } } } },
+      '/health': { get: { operationId: 'health', summary: 'Health check', tags: ['Info'], 'x-auth-mode': 'none', responses: { '200': { description: 'Service health', content: { 'application/json': { schema: { type: 'object' } } } } } } },
     },
+  });
+});
+
+// x402 well-known discovery
+app.get('/.well-known/x402', (_req, res) => {
+  res.json({
+    protocols: ['mpp', 'x402'],
+    endpoints: ['/v1/diagnose', '/v1/repair'],
+    network: MPP_CONFIG.network,
+    payTo: MPP_CONFIG.recipient,
   });
 });
 
