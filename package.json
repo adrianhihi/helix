@@ -23,7 +23,9 @@
     "start": "node packages/api/dist/server.js",
     "e2e:setup": "bash examples/e2e-agent/setup.sh",
     "e2e": "tsx examples/e2e-agent/agent.ts",
-    "e2e:zero": "tsx examples/real-e2e/zero-eth-test.ts"
+    "e2e:zero": "tsx examples/real-e2e/zero-eth-test.ts",
+    "e2e:full": "tsx examples/real-e2e/full-e2e-test.ts",
+    "e2e:coinbase": "tsx examples/real-e2e/coinbase-e2e-test.ts"
   },
   "devDependencies": {
     "tsx": "^4.0.0",
