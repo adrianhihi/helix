@@ -11,13 +11,11 @@ let _defaultGeneMap: GeneMap | null = null;
 export function createEngine(options?: WrapOptions): PcecEngine {
   const geneMap = new GeneMap(options?.geneMapPath ?? options?.config?.geneMapPath ?? DEFAULT_CONFIG.geneMapPath);
   const engine = new PcecEngine(geneMap, options?.agentId ?? options?.config?.projectName ?? 'default', options);
-
   for (const adapter of defaultAdapters) {
     if (!options?.platforms || options.platforms.includes(adapter.name) || adapter.name === 'generic') {
       engine.registerAdapter(adapter);
     }
   }
-
   return engine;
 }
 
@@ -25,18 +23,18 @@ function getDefaultEngine(options?: WrapOptions): { engine: PcecEngine; geneMap:
   if (!_defaultEngine) {
     const geneMap = new GeneMap(options?.geneMapPath ?? options?.config?.geneMapPath ?? DEFAULT_CONFIG.geneMapPath);
     const engine = new PcecEngine(geneMap, options?.agentId ?? 'default', options);
-
     for (const adapter of defaultAdapters) {
       if (!options?.platforms || options.platforms.includes(adapter.name) || adapter.name === 'generic') {
         engine.registerAdapter(adapter);
       }
     }
-
     _defaultEngine = engine;
     _defaultGeneMap = geneMap;
   }
   return { engine: _defaultEngine, geneMap: _defaultGeneMap! };
 }
+
+const SIMPLE_RETRY = ['backoff_retry', 'retry', 'retry_with_receipt', 'renew_session'];
 
 export function wrap<TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>,
@@ -47,17 +45,25 @@ export function wrap<TArgs extends unknown[], TResult>(
   const agentId = options?.agentId ?? 'wrapped';
 
   return async (...args: TArgs): Promise<TResult> => {
-    // ── KILL SWITCH ──
-    const enabled = typeof options?.enabled === 'function'
-      ? options.enabled()
-      : (options?.enabled ?? true);
-    if (!enabled) {
-      return await fn(...args);
-    }
+    const startTime = Date.now();
+
+    // Kill switch
+    const enabled = typeof options?.enabled === 'function' ? options.enabled() : (options?.enabled ?? true);
+    if (!enabled) return fn(...args);
+
+    // Current args — may be modified by parameterModifier
+    let currentArgs = args;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        return await fn(...args);
+        const result = await fn(...currentArgs);
+        // If this was a repaired retry, attach _helix metadata
+        if (attempt > 0) {
+          return Object.assign(result as any, {
+            _helix: { repaired: true, attempts: attempt + 1, totalMs: Date.now() - startTime },
+          });
+        }
+        return result;
       } catch (error) {
         if (attempt === maxRetries) {
           if (verbose) console.error(`\x1b[31m[helix] All ${maxRetries} repair attempts exhausted\x1b[0m`);
@@ -66,47 +72,61 @@ export function wrap<TArgs extends unknown[], TResult>(
 
         try {
           const { engine } = getDefaultEngine(options);
+          const errorMsg = (error as any)?.shortMessage ?? (error as Error).message ?? String(error);
+          const wrappedError = error instanceof Error ? error : new Error(errorMsg);
 
-          if (verbose) {
-            console.log(`\x1b[33m[helix] Payment failed (attempt ${attempt + 1}/${maxRetries}), engaging PCEC...\x1b[0m`);
-          }
-
+          if (verbose) console.log(`\x1b[33m[helix] Payment failed (attempt ${attempt + 1}/${maxRetries}), engaging PCEC...\x1b[0m`);
           bus.emit('retry', agentId, { attempt: attempt + 1, maxRetries });
 
-          const result: RepairResult = await engine.repair(error as Error);
+          const result: RepairResult = await engine.repair(wrappedError, {
+            ...options?.context,
+            chainId: (error as any)?.chain?.id,
+            walletAddress: (error as any)?.account?.address,
+          });
 
-          if (result.success) {
-            options?.onRepair?.(result);
-          } else {
-            options?.onFailure?.(result);
-          }
+          if (result.success) options?.onRepair?.(result);
+          else options?.onFailure?.(result);
 
+          // Observe mode — throw with diagnosis
           if (result.mode === 'observe') {
-            // In observe mode, throw original error with recommendation attached
-            const enriched = error as Error & { helixRecommendation: RepairResult };
+            const enriched = error as Error & { helixRecommendation: RepairResult; _helix: RepairResult };
             enriched.helixRecommendation = result;
+            enriched._helix = result;
             throw enriched;
           }
 
-          if (!result.success) {
+          const strategy = result.winner?.strategy ?? result.gene?.strategy;
+
+          if (result.success && strategy) {
+            if (verbose) {
+              const tag = result.immune ? '\x1b[36m⚡ IMMUNE' : '\x1b[32m✓ REPAIRED';
+              console.log(`${tag}\x1b[0m via ${strategy} in ${result.totalMs}ms ($${result.revenueProtected} protected)`);
+            }
+
+            // Check if parameterModifier can apply overrides for non-simple strategies
+            if (!SIMPLE_RETRY.includes(strategy) && options?.parameterModifier) {
+              // Get overrides from the repair result — provider.execute returns them
+              const overrides = (result as any).commitOverrides ?? {};
+              if (Object.keys(overrides).length > 0) {
+                currentArgs = options.parameterModifier(currentArgs as unknown[], overrides, strategy) as TArgs;
+                if (verbose) console.log(`\x1b[33m[helix] Applied overrides: ${Object.keys(overrides).join(', ')}\x1b[0m`);
+              }
+            }
+            // For simple retry: just loop back (currentArgs unchanged)
+            // For parameter strategies: currentArgs was modified above
+            // Either way, the next loop iteration calls fn(currentArgs)
+          } else {
             if (verbose) console.error(`\x1b[31m[helix] PCEC repair failed, retrying...\x1b[0m`);
-          } else if (verbose) {
-            const tag = result.immune ? '\x1b[36m⚡ IMMUNE' : '\x1b[32m✓ REPAIRED';
-            console.log(
-              `${tag}\x1b[0m via ${result.winner?.strategy} in ${result.totalMs}ms ($${result.revenueProtected} protected)`,
-            );
           }
         } catch (helixError) {
-          if ((helixError as Error & { helixRecommendation?: unknown }).helixRecommendation) {
-            throw helixError; // re-throw observe mode enriched error
+          if ((helixError as any)?.helixRecommendation || (helixError as any)?._helix) {
+            throw helixError;
           }
-          // Helix itself errored — graceful fallback
           options?.onHelixError?.(helixError as Error);
-          throw error; // throw ORIGINAL error
+          throw error;
         }
       }
     }
-
     throw new Error('Helix: unexpected repair loop exit');
   };
 }

@@ -195,6 +195,9 @@ export interface WrapOptions {
   onFailure?: (result: RepairResult) => void;
   onHelixError?: (error: Error) => void;
   onSystematic?: (warning: string, failure: FailureClassification) => void;
+  /** Apply repair overrides to function args for retry. Called when a strategy produces overrides (e.g. corrected nonce). */
+  parameterModifier?: (args: unknown[], overrides: Record<string, unknown>, strategy: string) => unknown[];
+  context?: Record<string, unknown>;
 }
 
 // ── Revenue estimates per category ──────────────────────────────

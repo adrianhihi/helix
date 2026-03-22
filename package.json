@@ -25,7 +25,8 @@
     "e2e": "tsx examples/e2e-agent/agent.ts",
     "e2e:zero": "tsx examples/real-e2e/zero-eth-test.ts",
     "e2e:full": "tsx examples/real-e2e/full-e2e-test.ts",
-    "e2e:coinbase": "tsx examples/real-e2e/coinbase-e2e-test.ts"
+    "e2e:coinbase": "tsx examples/real-e2e/coinbase-e2e-test.ts",
+    "agent": "tsx examples/real-e2e/payment-agent.ts"
   },
   "devDependencies": {
     "tsx": "^4.0.0",
