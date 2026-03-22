@@ -32,6 +32,7 @@ export { GeneMap } from './engine/gene-map.js';
 export { EventBus, bus } from './engine/bus.js';
 export { evaluate } from './engine/evaluate.js';
 export { HelixProvider } from './engine/provider.js';
+export { detectSignature, applyOverrides } from './engine/auto-detect.js';
 export { getDexPreset, DEX_PRESETS } from './engine/dex-presets.js';
 export { registerShutdownHandler } from './engine/lifecycle.js';
 export { getRootCause } from './engine/root-causes.js';
