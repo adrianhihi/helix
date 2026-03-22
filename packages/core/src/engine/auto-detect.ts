@@ -28,7 +28,10 @@ export function detectSignature(args: unknown[]): DetectedSignature {
 }
 
 export function applyOverrides(args: unknown[], overrides: Record<string, unknown>, strategy: string, sig: DetectedSignature): unknown[] | null {
-  if (sig.type === 'unknown' || Object.keys(overrides).length === 0 && !['reduce_request', 'speed_up_transaction'].includes(strategy)) return null;
+  if (sig.type === 'unknown') return null;
+  // Allow strategies that modify params even without explicit overrides
+  const alwaysApply = ['reduce_request', 'speed_up_transaction', 'refresh_nonce'];
+  if (Object.keys(overrides).length === 0 && !alwaysApply.includes(strategy)) return null;
   const newArgs = [...args];
 
   if (sig.type === 'viem-tx') {
@@ -36,6 +39,7 @@ export function applyOverrides(args: unknown[], overrides: Record<string, unknow
     switch (strategy) {
       case 'refresh_nonce':
         if (overrides.nonce !== undefined) tx.nonce = overrides.nonce;
+        else delete tx.nonce; // remove wrong nonce, let viem auto-assign
         break;
       case 'reduce_request':
         if (overrides.amount !== undefined) tx.value = BigInt(overrides.amount as string);

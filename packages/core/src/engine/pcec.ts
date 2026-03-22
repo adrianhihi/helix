@@ -247,6 +247,7 @@ export class PcecEngine {
           platform: failure.platform,
         },
         totalMs: Date.now() - start, revenueProtected: revenue,
+        commitOverrides: commitResult.overrides,
       });
     }
 
@@ -404,6 +405,7 @@ export class PcecEngine {
         totalMs, revenueProtected: revenue,
         costEstimate: winner.estimatedCostUsd, skippedStrategies,
         attribution,
+        commitOverrides: commitResult.overrides,
       });
     }
 

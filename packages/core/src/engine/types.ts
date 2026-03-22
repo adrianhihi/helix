@@ -112,6 +112,8 @@ export interface RepairResult {
   costEstimate: number;
   // OPT-10: Failure Attribution
   attribution?: { agentId: string; stepId?: string; workflow?: string; timestamp: number };
+  /** Overrides from strategy execution — used by wrap() auto-detect for retry */
+  commitOverrides?: Record<string, unknown>;
 }
 
 // ── Platform Adapter Interface ──────────────────────────────────

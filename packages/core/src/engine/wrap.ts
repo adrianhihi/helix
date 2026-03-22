@@ -18,17 +18,21 @@ export function createEngine(options?: WrapOptions): PcecEngine {
   return engine;
 }
 
+// Cache engines by geneMapPath to allow shared Gene Maps
+const _engineCache = new Map<string, { engine: PcecEngine; geneMap: GeneMap }>();
+
 function getDefaultEngine(options?: WrapOptions): { engine: PcecEngine; geneMap: GeneMap } {
-  if (!_defaultEngine) {
-    const geneMap = new GeneMap(options?.geneMapPath ?? options?.config?.geneMapPath ?? DEFAULT_CONFIG.geneMapPath);
-    const engine = new PcecEngine(geneMap, options?.agentId ?? 'default', options);
-    for (const adapter of defaultAdapters) {
-      if (!options?.platforms || options.platforms.includes(adapter.name) || adapter.name === 'generic') engine.registerAdapter(adapter);
-    }
-    _defaultEngine = engine;
-    _defaultGeneMap = geneMap;
+  const dbPath = options?.geneMapPath ?? options?.config?.geneMapPath ?? DEFAULT_CONFIG.geneMapPath;
+  const cached = _engineCache.get(dbPath);
+  if (cached) return cached;
+
+  const geneMap = new GeneMap(dbPath);
+  const engine = new PcecEngine(geneMap, options?.agentId ?? 'default', options);
+  for (const adapter of defaultAdapters) {
+    if (!options?.platforms || options.platforms.includes(adapter.name) || adapter.name === 'generic') engine.registerAdapter(adapter);
   }
-  return { engine: _defaultEngine, geneMap: _defaultGeneMap! };
+  _engineCache.set(dbPath, { engine, geneMap });
+  return { engine, geneMap };
 }
 
 const SIMPLE_RETRY = ['backoff_retry', 'retry', 'retry_with_receipt', 'renew_session'];
@@ -99,7 +103,7 @@ export function wrap<TArgs extends unknown[], TResult>(
 
           // Apply overrides for non-simple strategies
           if (!SIMPLE_RETRY.includes(strategy)) {
-            const overrides = (result as any).commitOverrides ?? {};
+            const overrides = result.commitOverrides ?? {};
 
             // Priority 1: User parameterModifier
             if (options?.parameterModifier && Object.keys(overrides).length > 0) {
@@ -129,7 +133,8 @@ export function wrap<TArgs extends unknown[], TResult>(
 }
 
 export function shutdown(): void {
-  _defaultGeneMap?.close();
-  _defaultGeneMap = null;
-  _defaultEngine = null;
+  for (const { geneMap } of _engineCache.values()) {
+    try { geneMap.close(); } catch {}
+  }
+  _engineCache.clear();
 }
