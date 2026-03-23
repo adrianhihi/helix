@@ -6,11 +6,14 @@
 import type { FailureClassification, ErrorCode, FailureCategory, Severity, Platform } from './types.js';
 
 export interface LlmConfig {
-  provider: 'anthropic' | 'openai';
+  /** Primary provider. Default: 'anthropic' */
+  provider?: 'anthropic' | 'openai';
   apiKey?: string;
   model?: string;
   timeoutMs?: number;
   enabled?: boolean;
+  /** Fallback API key (OpenAI). Used when primary (Claude) fails. */
+  fallbackApiKey?: string;
 }
 
 const CODES: ErrorCode[] = ['verification-failed', 'payment-insufficient', 'rate-limited', 'timeout', 'tx-reverted', 'method-unsupported', 'policy-violation', 'token-uninitialized', 'server-error', 'malformed-credential', 'invalid-challenge', 'unknown'];
@@ -33,20 +36,41 @@ Guide:
 - malformed/invalid params → malformed-credential + service`;
 
 export async function llmClassify(errorMessage: string, config: LlmConfig): Promise<FailureClassification | null> {
-  const apiKey = config.apiKey ?? process.env.HELIX_LLM_API_KEY;
-  if (!apiKey || config.enabled === false) return null;
+  if (config.enabled === false) return null;
 
+  const provider = config.provider ?? 'anthropic';
+  const primaryKey = config.apiKey ?? process.env.ANTHROPIC_API_KEY ?? process.env.HELIX_LLM_API_KEY;
+  const fallbackKey = config.fallbackApiKey ?? process.env.OPENAI_API_KEY;
+
+  if (!primaryKey && !fallbackKey) return null;
+
+  // Try primary (default: Claude)
+  if (primaryKey) {
+    const result = await tryLlm(errorMessage, provider, primaryKey, config.model, config.timeoutMs);
+    if (result) return result;
+  }
+
+  // Fallback to the other provider
+  if (fallbackKey && provider === 'anthropic') {
+    const result = await tryLlm(errorMessage, 'openai', fallbackKey, undefined, config.timeoutMs);
+    if (result) return result;
+  } else if (fallbackKey && provider === 'openai') {
+    const result = await tryLlm(errorMessage, 'anthropic', fallbackKey, undefined, config.timeoutMs);
+    if (result) return result;
+  }
+
+  return null;
+}
+
+async function tryLlm(errorMessage: string, provider: 'anthropic' | 'openai', apiKey: string, model: string | undefined, timeoutMs: number | undefined): Promise<FailureClassification | null> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), config.timeoutMs ?? 2000);
-
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs ?? 2000);
   try {
-    const text = config.provider === 'anthropic'
-      ? await callAnthropic(errorMessage, apiKey, config.model, ctrl.signal)
-      : await callOpenAI(errorMessage, apiKey, config.model, ctrl.signal);
-
+    const text = provider === 'anthropic'
+      ? await callAnthropic(errorMessage, apiKey, model, ctrl.signal)
+      : await callOpenAI(errorMessage, apiKey, model, ctrl.signal);
     clearTimeout(timer);
     const p = JSON.parse(text.trim().replace(/```json\n?|```/g, ''));
-
     return {
       code: (CODES.includes(p.code) ? p.code : 'unknown') as ErrorCode,
       category: (CATS.includes(p.category) ? p.category : 'unknown') as FailureCategory,
@@ -88,13 +112,15 @@ async function callOpenAI(msg: string, key: string, model: string | undefined, s
 }
 
 export async function llmGenerateReasoning(errorMessage: string, strategy: string, config: LlmConfig): Promise<string | null> {
-  const apiKey = config.apiKey ?? process.env.HELIX_LLM_API_KEY;
-  if (!apiKey || config.enabled === false) return null;
+  if (config.enabled === false) return null;
+  const provider = config.provider ?? 'anthropic';
+  const key = config.apiKey ?? process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY ?? process.env.HELIX_LLM_API_KEY;
+  if (!key) return null;
   const prompt = `Error: "${errorMessage}"\nRepaired with: "${strategy}"\nIn one sentence, explain WHY this strategy works.`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 3000);
   try {
-    const text = config.provider === 'anthropic' ? await callAnthropic(prompt, apiKey, config.model, ctrl.signal) : await callOpenAI(prompt, apiKey, config.model, ctrl.signal);
+    const text = provider === 'anthropic' ? await callAnthropic(prompt, key, config.model, ctrl.signal) : await callOpenAI(prompt, key, config.model, ctrl.signal);
     clearTimeout(timer);
     return text.trim().slice(0, 500);
   } catch { clearTimeout(timer); return null; }
