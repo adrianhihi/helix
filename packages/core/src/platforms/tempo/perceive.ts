@@ -7,7 +7,7 @@ export function tempoPerceive(error: Error, _context?: Record<string, unknown>):
   const errAny = error as unknown as Record<string, unknown>;
   const errorCode = (errAny.code ?? errAny.errorCode ?? '') as string;
 
-  if (errorCode === 'payment-insufficient' || msg.includes('insufficient balance') || msg.includes('payment-insufficient'))
+  if (errorCode === 'payment-insufficient' || msg.includes('insufficient balance') || msg.includes('insufficient funds') || msg.includes('payment-insufficient'))
     return { code: 'payment-insufficient', category: 'balance', severity: 'high', platform: 'tempo', details: msg, timestamp: Date.now() };
 
   if (errorCode === 'invalid-challenge' || (msg.includes('session') && (msg.includes('expired') || msg.includes('invalid-challenge'))))
