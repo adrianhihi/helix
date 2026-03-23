@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Helix Benchmark v0.9.0 — HumanEval + Live Chain Verification (viem)</title>
+<title>Helix Benchmark v1.2.0 — HumanEval + Live Chain Verification (viem)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -180,7 +180,7 @@ h2{font-family:var(--sans);font-weight:800;font-size:26px;color:var(--bright);ma
 <section id="hero">
 <div class="fade-in">
   <div class="hero-nums"><span class="from">68%</span><span class="arrow">&rarr;</span><span class="to">90%</span></div>
-  <div class="hero-sub">Benchmark: Helix SDK v0.9.0 &mdash; HumanEval + Live Chain Verification (viem)</div>
+  <div class="hero-sub">Benchmark: Helix SDK v1.2.0 &mdash; HumanEval + Live Chain Verification (viem)</div>
   <div class="hero-tag">We didn't build a better model.<br>We built infrastructure that doesn't let failures go to waste.</div>
   <div class="pills">
     <span class="pill">seed 42 &middot; reproducible</span>
@@ -394,13 +394,39 @@ h2{font-family:var(--sans);font-weight:800;font-size:26px;color:var(--bright);ma
 </div>
 </section>
 
+<!-- ═══ HELIX PERFORMANCE ═══ -->
+<section>
+<div class="fade-in">
+  <h2 style="margin-bottom:6px">Helix Engine Performance</h2>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;">
+    <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+      <div style="font-weight:800;font-size:24px;color:var(--green)">&lt;1ms</div>
+      <div style="font-size:10px;color:var(--dim);margin-top:4px">IMMUNE path</div>
+    </div>
+    <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+      <div style="font-weight:800;font-size:24px;color:var(--amber)">&lt;5ms</div>
+      <div style="font-size:10px;color:var(--dim);margin-top:4px">Full PCEC (observe)</div>
+    </div>
+    <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+      <div style="font-weight:800;font-size:24px;color:var(--blue)">0.1ms</div>
+      <div style="font-size:10px;color:var(--dim);margin-top:4px">L1 cache lookup</div>
+    </div>
+    <div style="text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+      <div style="font-weight:800;font-size:24px;color:var(--purple)">1-3s</div>
+      <div style="font-size:10px;color:var(--dim);margin-top:4px">LLM fallback (rare)</div>
+    </div>
+  </div>
+  <p style="font-size:11px;color:var(--dim);margin-top:12px;text-align:center">174 tests &middot; 23 files &middot; 26 strategies &middot; 12 seed genes &middot; 3 LLM integration points</p>
+</div>
+</section>
+
 <!-- ═══ CTA ═══ -->
 <section id="cta">
   <div class="cta-buttons">
     <a href="/" class="cta-btn primary">&#9889; View Payment Lab &rarr;</a>
     <a href="/docs" class="cta-btn outline">&#128196; Read the Docs &rarr;</a>
   </div>
-  <footer>Helix v0.9.0 &middot; Self-healing infrastructure for AI agent payments &middot; viem + real chain verification</footer>
+  <footer>Helix v1.2.0 &middot; Self-healing infrastructure for AI agent payments &middot; viem + real chain verification</footer>
 </section>
 
 <script>

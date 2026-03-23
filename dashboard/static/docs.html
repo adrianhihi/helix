@@ -1622,7 +1622,7 @@ geneMap.<span class="fn">close</span>();  <span class="cm">// close SQLite conne
           <span class="evo-badge" style="background:rgba(74,222,128,0.1);border-color:rgba(74,222,128,0.2);color:var(--green)">CURRENT</span>
           <span class="evo-badge">HACKATHON DEMO</span>
         </div>
-        <div class="evo-desc">Fixed repair strategies for known failure patterns. Every repair stored as Gene Capsule. 31 failure types, ~25 strategies, 9 immune hits in benchmark.</div>
+        <div class="evo-desc">Fixed repair strategies for known failure patterns. Every repair stored as Gene Capsule. 31 failure types, ~26 strategies, 9 immune hits in benchmark.</div>
         <div class="evo-tech">Bounded error space (7 MPP codes + 3 Tempo-specific). Evaluate scores by speed/cost/requirements/successProbability. Gene Map in SQLite with WAL mode.</div>
         <div class="evo-limit">Limitation: Can only handle failures it's been programmed for. Unknown error codes &rarr; fallback to human.</div>
       </div>
@@ -2123,7 +2123,7 @@ Downloading HGP genes for tempo + USDC/EURC...
 <!-- ═══════════ DAY 7-9 FEATURES ═══════════ -->
 <section id="advanced">
   <div class="fade-in">
-    <h2>Advanced Features (v0.9.0)</h2>
+    <h2>Advanced Features (v1.2.0)</h2>
     <p class="section-sub">Research-backed intelligence layer built over 9 development days.</p>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
@@ -2203,6 +2203,30 @@ Downloading HGP genes for tempo + USDC/EURC...
       </div>
     </div>
 
+    <h3 style="font-size:14px;font-weight:700;color:var(--text-bright);margin:28px 0 10px;">LLM Integration (v1.2.0)</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;">
+      <div style="padding:16px;border-radius:10px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);">
+        <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:6px;">LLM Perceive</div>
+        <div style="font-size:11px;color:var(--text-dim);">When string matching fails, Claude/GPT classifies the error. Results cached in Gene Map — LLM called at most once per pattern.</div>
+      </div>
+      <div style="padding:16px;border-radius:10px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);">
+        <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:6px;">LLM Construct</div>
+        <div style="font-size:11px;color:var(--text-dim);">When no adapter has candidates, LLM picks 1-3 strategies from the menu. Confidence capped at 0.7. Only valid strategy names accepted.</div>
+      </div>
+      <div style="padding:16px;border-radius:10px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);">
+        <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:6px;">LLM Reasoning</div>
+        <div style="font-size:11px;color:var(--text-dim);">After 3+ successful repairs, async LLM generates WHY the strategy works. Stored in Gene.reasoning. Non-blocking.</div>
+      </div>
+    </div>
+    <div class="api-code" style="font-size:11px;margin-bottom:24px;"><span style="color:var(--text-dim)">// Enable LLM (default: disabled, $0)</span>
+<span class="kw">wrap</span>(fn, {
+  mode: <span class="st">'auto'</span>,
+  llm: { enabled: <span class="num">true</span> },  <span style="color:var(--text-dim)">// reads ANTHROPIC_API_KEY + OPENAI_API_KEY from env</span>
+  telemetry: { enabled: <span class="num">true</span> },  <span style="color:var(--text-dim)">// opt-in: help improve seed genes for everyone</span>
+  logLevel: <span class="st">'info'</span>,  <span style="color:var(--text-dim)">// 'debug' | 'info' | 'warn' | 'error' | 'silent'</span>
+  logFormat: <span class="st">'json'</span>,  <span style="color:var(--text-dim)">// 'pretty' (colored) | 'json' (structured)</span>
+});</div>
+
     <h3 style="font-size:14px;font-weight:700;color:var(--text-bright);margin:28px 0 10px;">Research Foundations</h3>
     <table class="scenario-table" style="font-size:12px;">
       <thead><tr><th>Paper</th><th>Year</th><th>Implementation</th></tr></thead>
@@ -2222,7 +2246,7 @@ Downloading HGP genes for tempo + USDC/EURC...
 <!-- ═══════════ FOOTER ═══════════ -->
 <footer>
   <div style="color:var(--text-dim)">
-    <span style="color:var(--amber);font-weight:700">Helix</span> v0.9.0
+    <span style="color:var(--amber);font-weight:700">Helix</span> v1.2.0
     &nbsp;&middot;&nbsp; Self-healing infrastructure for AI agent payments &nbsp;&middot;&nbsp; 31 scenarios, 5 platforms, viem chain verification &nbsp;&middot;&nbsp; March 2026
   </div>
   <div class="links">
