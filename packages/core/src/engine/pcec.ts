@@ -9,11 +9,15 @@ import type {
   HelixMode,
   PlatformAdapter,
   RepairCandidate,
+  RepairContext,
   RepairResult,
   WrapOptions,
 } from './types.js';
 import { REVENUE_AT_RISK } from './types.js';
 import { getRootCause } from './root-causes.js';
+import { detectStrategyChain, isChainStrategy, parseChainSteps } from './chain.js';
+import { executeChain } from './chain-executor.js';
+import { HelixOtel, NOOP_OTEL } from './otel.js';
 
 // Category C strategies that move funds — require 'full' mode
 const FUND_MOVEMENT_STRATEGIES = [
@@ -54,12 +58,16 @@ export class PcecEngine {
   private failureTracker: Map<string, { count: number; firstSeen: number; lastSeen: number }> = new Map();
   /** OPT-5: Recent failures for co-occurrence detection */
   private recentFailures: { code: string; category: string; timestamp: number }[] = [];
+  /** Predictive Failure Graph: last failure for transition tracking */
+  private lastFailure: { code: string; category: string; timestamp: number } | null = null;
+  private otel: HelixOtel;
 
   constructor(geneMap: GeneMap, agentId: string = 'default', options?: WrapOptions) {
     this.geneMap = geneMap;
     this.agentId = agentId;
     this.options = options ?? {};
     this.provider = new HelixProvider(options?.provider);
+    this.otel = options?.otel ? new HelixOtel(options.otel) : NOOP_OTEL;
   }
 
   private checkSystematic(failure: FailureClassification): string | null {
@@ -164,6 +172,16 @@ export class PcecEngine {
       return makeResult({ failure, explanation: `PCEC halted after ${this.MAX_CYCLES} cycles`, mode });
     }
 
+    const span = this.otel.startRepairSpan(error.message);
+
+    // ── Build RepairContext for context-aware Gene Map ──
+    const repairContext: RepairContext = {
+      chainId: context?.chainId as number | undefined,
+      gasPriceGwei: context?.gasPrice ? Number(context.gasPrice) / 1e9 : undefined,
+      hourOfDay: new Date().getHours(),
+      agentId: this.agentId,
+    };
+
     // ── PERCEIVE ──
     let failure = this.perceive(error, context);
 
@@ -180,6 +198,7 @@ export class PcecEngine {
       } catch { /* LLM failed, continue with unknown */ }
     }
 
+    this.otel.addStageEvent(span, 'perceive', { code: failure.code, category: failure.category });
     bus.emit('perceive', this.agentId, {
       code: failure.code, category: failure.category,
       severity: failure.severity, platform: failure.platform,
@@ -203,8 +222,8 @@ export class PcecEngine {
     }
     this.recentFailures.push({ code: failure.code, category: failure.category, timestamp: now });
 
-    // ── GENE MAP LOOKUP (with Q-value ranking) ──
-    const existingGene = this.geneMap.lookup(failure.code, failure.category);
+    // ── GENE MAP LOOKUP (context-aware Q-value ranking) ──
+    const existingGene = this.geneMap.lookup(failure.code, failure.category, repairContext);
     if (existingGene && existingGene.qValue > 0.3) {
       this.stats.immuneHits++;
       this.stats.repairs++;
@@ -220,6 +239,7 @@ export class PcecEngine {
         `(q=${existingGene.qValue.toFixed(2)}, ${existingGene.successCount} fixes). ` +
         `Platforms: ${existingGene.platforms.join(', ')}`;
 
+      this.otel.addStageEvent(span, 'immune', { strategy: existingGene.strategy, qValue: existingGene.qValue });
       bus.emit('immune', this.agentId, {
         code: failure.code, category: failure.category,
         strategy: existingGene.strategy, successCount: existingGene.successCount,
@@ -227,15 +247,31 @@ export class PcecEngine {
       });
 
       if (mode === 'observe') {
+        const totalMs = Date.now() - start;
+        this.otel.endRepairSpan(span, { success: true, immune: true, strategy: existingGene.strategy, code: failure.code, category: failure.category, totalMs, qValue: existingGene.qValue });
+        this.otel.recordRepair({ success: true, immune: true, strategy: existingGene.strategy, code: failure.code, durationMs: totalMs });
+        this.geneMap.recordAudit({ agentId: this.agentId, errorMessage: error.message, failureCode: failure.code, failureCategory: failure.category, strategy: existingGene.strategy, immune: true, success: true, mode, durationMs: totalMs, qBefore: existingGene._originalQValue ?? existingGene.qValue });
         return makeResult({
           success: true, immune: true, mode, explanation, failure,
-          gene: existingGene, totalMs: Date.now() - start,
+          gene: existingGene, totalMs,
           revenueProtected: revenue,
         });
       }
 
-      // Auto/Full mode: execute the immune strategy
-      const commitResult = await this.provider.execute(existingGene.strategy, failure, context);
+      // Auto/Full mode: execute the immune strategy (chain-aware)
+      let commitResult: CommitResult;
+      let stepsExecuted: { strategy: string; success: boolean; ms: number }[] | undefined;
+
+      if (isChainStrategy(existingGene.strategy)) {
+        const chainResult = await executeChain(this.provider,
+          parseChainSteps(existingGene.strategy), failure, context,
+        );
+        commitResult = chainResult.commitResult;
+        stepsExecuted = chainResult.stepsExecuted;
+      } else {
+        commitResult = await this.provider.execute(existingGene.strategy, failure, context);
+      }
+
       const verified = await this.verify(
         failure,
         { strategy: existingGene.strategy, estimatedCostUsd: 0 } as RepairCandidate,
@@ -243,9 +279,9 @@ export class PcecEngine {
       );
 
       if (verified) {
-        this.geneMap.recordSuccess(failure.code, failure.category, Date.now() - start);
+        this.geneMap.recordSuccess(failure.code, failure.category, Date.now() - start, repairContext);
       } else {
-        this.geneMap.recordFailure(failure.code, failure.category);
+        this.geneMap.recordFailure(failure.code, failure.category, repairContext);
       }
 
       // Async LLM reasoning for immune genes with empty reasoning
@@ -258,20 +294,44 @@ export class PcecEngine {
         }).catch(() => {});
       }
 
+      // ── Predictive Failure Graph (immune path) ──
+      if (this.lastFailure) {
+        const delay = Date.now() - this.lastFailure.timestamp;
+        if (delay < 60_000) {
+          this.geneMap.recordTransition(this.lastFailure.code, this.lastFailure.category, failure.code, failure.category, delay);
+        }
+      }
+      this.lastFailure = { code: failure.code, category: failure.category, timestamp: Date.now() };
+      const immunePredictions = this.geneMap.predictNext(failure.code, failure.category);
+      for (const pred of immunePredictions) {
+        this.geneMap.preload(pred.code as any, pred.category as any);
+      }
+
       this.cycleCount = 0;
+      const immuneTotalMs = Date.now() - start;
+      this.otel.endRepairSpan(span, { success: verified, immune: true, strategy: existingGene.strategy, code: failure.code, category: failure.category, totalMs: immuneTotalMs, qValue: existingGene.qValue });
+      this.otel.recordRepair({ success: verified, immune: true, strategy: existingGene.strategy, code: failure.code, durationMs: immuneTotalMs });
+      this.geneMap.recordAudit({ agentId: this.agentId, errorMessage: error.message, failureCode: failure.code, failureCategory: failure.category, strategy: existingGene.strategy, immune: true, success: verified, mode, durationMs: immuneTotalMs, qBefore: existingGene._originalQValue ?? existingGene.qValue, chainSteps: isChainStrategy(existingGene.strategy) ? existingGene.strategy.split('+') : undefined, predictions: immunePredictions.length > 0 ? immunePredictions.map(p => ({ code: p.code, probability: p.probability })) : undefined });
+
+      const immuneWinner: RepairCandidate = {
+        id: existingGene.strategy, strategy: existingGene.strategy,
+        description: `Immune: ${existingGene.strategy}`,
+        estimatedCostUsd: 0, estimatedSpeedMs: Date.now() - start,
+        requirements: [], score: 100, successProbability: 0.99,
+        platform: failure.platform,
+      };
+      if (isChainStrategy(existingGene.strategy)) {
+        immuneWinner.steps = parseChainSteps(existingGene.strategy);
+      }
       return makeResult({
         success: verified, immune: true, mode, verified,
         explanation: explanation + (verified ? '\n✓ Verified' : '\n✗ Verification failed'),
         failure, gene: existingGene,
-        winner: {
-          id: existingGene.strategy, strategy: existingGene.strategy,
-          description: `Immune: ${existingGene.strategy}`,
-          estimatedCostUsd: 0, estimatedSpeedMs: Date.now() - start,
-          requirements: [], score: 100, successProbability: 0.99,
-          platform: failure.platform,
-        },
+        winner: immuneWinner,
         totalMs: Date.now() - start, revenueProtected: revenue,
         commitOverrides: commitResult.overrides,
+        stepsExecuted,
+        predictions: immunePredictions.length > 0 ? immunePredictions : undefined,
       });
     }
 
@@ -291,6 +351,9 @@ export class PcecEngine {
         }
       } catch { /* LLM failed */ }
     }
+
+    // ── CHAIN DETECTION: compound errors ──
+    candidates = detectStrategyChain(error.message, candidates);
 
     // ── FILTER: blocklist/allowlist ──
     const skippedStrategies: string[] = [];
@@ -340,6 +403,7 @@ export class PcecEngine {
     // ── EVALUATE ──
     const scored = evaluate(candidates, failure);
     const winner = scored[0];
+    this.otel.addStageEvent(span, 'evaluate', { winner: winner.strategy, score: winner.score });
     bus.emit('evaluate', this.agentId, {
       winner: winner.strategy, score: winner.score, platform: winner.platform,
       allScores: scored.map(c => ({ strategy: c.strategy, score: c.score })),
@@ -389,10 +453,22 @@ export class PcecEngine {
     // ── COMMIT ──
     const repairId = this.geneMap.generateRepairId();
     this.geneMap.logRepairStart(repairId, failure.code, failure.category, winner.strategy);
-    const commitResult = await this.provider.execute(winner.strategy, failure, context);
+
+    let commitResult: CommitResult;
+    let stepsExecuted: { strategy: string; success: boolean; ms: number }[] | undefined;
+
+    if (winner.steps && winner.steps.length > 0) {
+      const chainResult = await executeChain(this.provider, winner.steps, failure, context);
+      commitResult = chainResult.commitResult;
+      stepsExecuted = chainResult.stepsExecuted;
+    } else {
+      commitResult = await this.provider.execute(winner.strategy, failure, context);
+    }
+
     const totalMs = Date.now() - start;
     const revenue = REVENUE_AT_RISK[failure.category] ?? 50;
 
+    this.otel.addStageEvent(span, 'commit', { success: commitResult.success });
     bus.emit('commit', this.agentId, {
       success: commitResult.success, strategy: winner.strategy,
       description: commitResult.description, totalMs,
@@ -418,7 +494,7 @@ export class PcecEngine {
         qValue: 0.6, consecutiveFailures: 0,
       };
       this.geneMap.store(gene);
-      this.geneMap.recordSuccess(failure.code, failure.category, totalMs);
+      this.geneMap.recordSuccess(failure.code, failure.category, totalMs, repairContext);
 
       bus.emit('gene', this.agentId, {
         code: failure.code, category: failure.category,
@@ -465,6 +541,24 @@ export class PcecEngine {
 
       const attribution = { agentId: this.agentId, stepId: context?.stepId as string, workflow: context?.workflow as string, timestamp: Date.now() };
 
+      // ── Predictive Failure Graph: record transition + predict + preload ──
+      if (this.lastFailure) {
+        const delay = Date.now() - this.lastFailure.timestamp;
+        if (delay < 60_000) {
+          this.geneMap.recordTransition(this.lastFailure.code, this.lastFailure.category, failure.code, failure.category, delay);
+        }
+      }
+      this.lastFailure = { code: failure.code, category: failure.category, timestamp: Date.now() };
+
+      const predictions = this.geneMap.predictNext(failure.code, failure.category);
+      for (const pred of predictions) {
+        this.geneMap.preload(pred.code as any, pred.category as any);
+      }
+
+      this.otel.endRepairSpan(span, { success: true, immune: false, strategy: winner.strategy, code: failure.code, category: failure.category, totalMs, qValue: gene.qValue });
+      this.otel.recordRepair({ success: true, immune: false, strategy: winner.strategy, code: failure.code, durationMs: totalMs });
+      this.geneMap.recordAudit({ agentId: this.agentId, errorMessage: error.message, failureCode: failure.code, failureCategory: failure.category, strategy: winner.strategy, immune: false, success: true, mode, durationMs: totalMs, qBefore: existingGene?.qValue, overrides: commitResult.overrides, chainSteps: winner.steps?.map(s => s.strategy), predictions: predictions.length > 0 ? predictions.map(p => ({ code: p.code, probability: p.probability })) : undefined });
+
       return makeResult({
         success: true, mode, verified: true,
         explanation: explanation + '\n✓ Verified',
@@ -474,6 +568,8 @@ export class PcecEngine {
         costEstimate: winner.estimatedCostUsd, skippedStrategies,
         attribution,
         commitOverrides: commitResult.overrides,
+        stepsExecuted,
+        predictions: predictions.length > 0 ? predictions : undefined,
       });
     }
 
@@ -483,8 +579,12 @@ export class PcecEngine {
     this.geneMap.recordFailureAnalysis(failure.code, failure.category, `Strategy '${winner.strategy}' failed: ${commitResult.description}`);
     this.geneMap.recordAttribution({ repairId, agentId: this.agentId, stepId: context?.stepId as string, workflow: context?.workflow as string, failureCode: failure.code, category: failure.category, strategy: winner.strategy, success: false });
     if (existingGene) {
-      this.geneMap.recordFailure(failure.code, failure.category);
+      this.geneMap.recordFailure(failure.code, failure.category, repairContext);
     }
+
+    this.otel.endRepairSpan(span, { success: false, immune: false, strategy: winner.strategy, code: failure.code, category: failure.category, totalMs });
+    this.otel.recordRepair({ success: false, immune: false, strategy: winner.strategy, code: failure.code, durationMs: totalMs });
+    this.geneMap.recordAudit({ agentId: this.agentId, errorMessage: error.message, failureCode: failure.code, failureCategory: failure.category, strategy: winner.strategy, immune: false, success: false, mode, durationMs: totalMs, qBefore: existingGene?.qValue });
 
     return makeResult({
       failure, mode, candidates: scored, winner, totalMs,

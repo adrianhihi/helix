@@ -54,6 +54,11 @@ export class HelixProvider {
   }
 
   canExecute(strategy: string): boolean {
+    // Chain strategy: check all individual steps
+    if (strategy.includes('+')) {
+      return strategy.split('+').every(s => this.canExecute(s.trim()));
+    }
+
     if (!this.hasExplicitConfig) return true; // mock/dev mode
 
     const noProvider = [

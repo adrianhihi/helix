@@ -42,6 +42,20 @@ export type Severity = 'low' | 'medium' | 'high' | 'critical';
 
 export type Platform = 'tempo' | 'privy' | 'coinbase' | 'stripe' | 'generic' | 'unknown';
 
+// ── Repair Context ──────────────────────────────────────────────
+
+/**
+ * Environmental context at the time of repair.
+ * Used by Context-Aware Gene Map to select the best strategy for current conditions.
+ */
+export interface RepairContext {
+  chainId?: number;
+  gasPriceGwei?: number;
+  hourOfDay?: number;
+  agentId?: string;
+  [key: string]: unknown;
+}
+
 // ── Execution Mode ──────────────────────────────────────────────
 
 export type HelixMode = 'observe' | 'auto' | 'full';
@@ -64,9 +78,19 @@ export interface FailureClassification {
   walletAddress?: string;
 }
 
+/** A single step in a multi-step repair chain */
+export interface StrategyStep {
+  /** Strategy name to execute */
+  strategy: string;
+  /** If this step fails, stop the chain (default: true) */
+  stopOnFailure?: boolean;
+}
+
 export interface RepairCandidate {
   id: string;
   strategy: string;
+  /** Multi-step chain. If present, execute steps in order instead of single strategy. */
+  steps?: StrategyStep[];
   description: string;
   estimatedCostUsd: number;
   estimatedSpeedMs: number;
@@ -88,6 +112,9 @@ export interface GeneCapsule {
   avgRepairMs: number;
   platforms: Platform[];
   qValue: number;
+  qVariance?: number;
+  qCount?: number;
+  last5Rewards?: number[];
   consecutiveFailures: number;
   lastSuccessAt?: number;
   lastFailedAt?: number;
@@ -98,6 +125,10 @@ export interface GeneCapsule {
   failureAnalysis?: string[];
   successContext?: { chains?: string[]; walletTypes?: string[]; platforms?: string[] };
   failureContext?: { chains?: string[]; walletTypes?: string[]; note?: string };
+  /** Original Q-value before context adjustment (set by context-aware lookup) */
+  _originalQValue?: number;
+  /** Context similarity score 0.5–1.0 (set by context-aware lookup) */
+  _contextSimilarity?: number;
 }
 
 export interface RepairResult {
@@ -118,6 +149,12 @@ export interface RepairResult {
   attribution?: { agentId: string; stepId?: string; workflow?: string; timestamp: number };
   /** Overrides from strategy execution — used by wrap() auto-detect for retry */
   commitOverrides?: Record<string, unknown>;
+  /** If strategy chain was used, list of steps executed */
+  stepsExecuted?: { strategy: string; success: boolean; ms: number }[];
+  /** True if business-level verify() callback returned false */
+  verifyFailed?: boolean;
+  /** Predicted next failures (from Predictive Failure Graph) */
+  predictions?: { code: string; category: string; probability: number; avgDelayMs: number }[];
 }
 
 // ── Platform Adapter Interface ──────────────────────────────────
@@ -214,6 +251,19 @@ export interface WrapOptions {
   logLevel?: 'debug' | 'info' | 'warn' | 'error' | 'silent';
   /** Log format. 'pretty' (colored) or 'json' (structured). Default: 'pretty'. */
   logFormat?: 'pretty' | 'json';
+  /**
+   * Business-level verification after successful repair + retry.
+   *
+   * Called after the retried function succeeds. If verify returns false,
+   * the repair is treated as a failure (Gene q_value decreases).
+   *
+   * @param result - The return value of the retried function
+   * @param originalArgs - The original arguments passed to wrap(fn)
+   * @returns true if the result is valid, false to treat as failure
+   */
+  verify?: (result: unknown, originalArgs: unknown[]) => Promise<boolean> | boolean;
+  /** OpenTelemetry configuration. Provide your own tracer/meter for distributed tracing and metrics. */
+  otel?: { tracer?: any; meter?: any; serviceName?: string };
 }
 
 // ── Revenue estimates per category ──────────────────────────────

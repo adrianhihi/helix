@@ -10,7 +10,7 @@ describe('Schema Versioning (D10)', () => {
     gm = new GeneMap(':memory:');
     const db = (gm as any).db as Database.Database;
     const row = db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as { version: number };
-    expect(row.version).toBe(3);
+    expect(row.version).toBe(5);
   });
 
   it('migrates from v0 to latest', () => {

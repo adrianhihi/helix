@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
-import type { ErrorCode, FailureCategory, GeneCapsule, Platform } from './types.js';
+import type { ErrorCode, FailureCategory, GeneCapsule, Platform, RepairContext } from './types.js';
 import { SEED_GENES } from './seed-genes.js';
+import { GenePredictiveGraph } from './gene-predict.js';
+import { simplifyContext, getContextArray, contextSimilarity } from './gene-context.js';
 
 function parseRow(row: Record<string, unknown>): GeneCapsule {
   return {
@@ -13,6 +15,9 @@ function parseRow(row: Record<string, unknown>): GeneCapsule {
     avgRepairMs: row.avg_repair_ms as number,
     platforms: JSON.parse(row.platforms as string) as Platform[],
     qValue: row.q_value as number,
+    qVariance: (row.q_variance as number) ?? 0.25,
+    qCount: (row.q_count as number) ?? 0,
+    last5Rewards: row.last_5_rewards ? JSON.parse(row.last_5_rewards as string) : [],
     consecutiveFailures: row.consecutive_failures as number,
     lastSuccessAt: row.last_success_at as number | undefined,
     lastFailedAt: row.last_failed_at as number | undefined,
@@ -25,8 +30,46 @@ function parseRow(row: Record<string, unknown>): GeneCapsule {
   };
 }
 
+// ── Adaptive Learning Rate (Sprint 2) ──
+
+export interface AdaptiveAlphaConfig {
+  alphaBase: number;   // base learning rate (default 0.1)
+  gamma: number;       // variance sensitivity (default 2.0)
+  beta: number;        // count decay (default 0.05)
+  alphaMin: number;    // floor (default 0.01)
+  alphaMax: number;    // ceiling (default 0.5)
+}
+
+const DEFAULT_ALPHA_CONFIG: AdaptiveAlphaConfig = {
+  alphaBase: 0.1,
+  gamma: 2.0,
+  beta: 0.05,
+  alphaMin: 0.01,
+  alphaMax: 0.5,
+};
+
+export function calculateAdaptiveAlpha(
+  qCount: number,
+  last5Rewards: number[],
+  config: AdaptiveAlphaConfig = DEFAULT_ALPHA_CONFIG,
+): number {
+  const variance = last5Rewards.length >= 2
+    ? last5Rewards.reduce((sum, r) => sum + (r - last5Rewards.reduce((a, b) => a + b, 0) / last5Rewards.length) ** 2, 0) / (last5Rewards.length - 1)
+    : 0.25; // high variance default for cold start
+  const alpha = config.alphaBase * (1 + config.gamma * variance) / (1 + config.beta * qCount);
+  return Math.max(config.alphaMin, Math.min(config.alphaMax, alpha));
+}
+
+export function thompsonSample(qValue: number, qVariance: number): number {
+  // Box-Muller transform for normal sample
+  const u1 = Math.random();
+  const u2 = Math.random();
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  return qValue + z * Math.sqrt(Math.max(qVariance, 0.001));
+}
+
 export class GeneMap {
-  private static readonly SCHEMA_VERSION = 3;
+  private static readonly SCHEMA_VERSION = 5;
   private db: Database.Database;
   private stmtLookup!: Database.Statement;
   private stmtUpsert!: Database.Statement;
@@ -36,12 +79,14 @@ export class GeneMap {
   private cache: Map<string, Record<string, unknown>> = new Map();
   private cacheLoadedAt = 0;
   private readonly CACHE_TTL_MS = 30_000;
+  private predict!: GenePredictiveGraph;
 
   constructor(dbPath: string = ':memory:') {
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL');
     this.ensureSchema();
     this.prepareStatements();
+    this.predict = new GenePredictiveGraph(this.db, this.stmtLookup, this.cache, this.cacheKey.bind(this));
     this.seed();
     this.warmCache();
   }
@@ -53,6 +98,7 @@ export class GeneMap {
     const row = this.db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as { version: number } | undefined;
     const current = row?.version ?? 0;
     if (current < GeneMap.SCHEMA_VERSION) this.migrate(current);
+    this.db.exec(`CREATE TABLE IF NOT EXISTS repair_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp INTEGER NOT NULL, agent_id TEXT, error_message TEXT, failure_code TEXT, failure_category TEXT, strategy TEXT, immune INTEGER DEFAULT 0, success INTEGER DEFAULT 0, verify_passed INTEGER DEFAULT 1, mode TEXT, duration_ms INTEGER, q_before REAL, q_after REAL, overrides TEXT, chain_steps TEXT, predictions TEXT, created_at DATETIME DEFAULT (datetime('now')))`);
   }
 
   private migrate(from: number): void {
@@ -74,6 +120,18 @@ export class GeneMap {
       },
       2: () => {
         this.db.exec(`CREATE TABLE IF NOT EXISTS gene_links (id INTEGER PRIMARY KEY AUTOINCREMENT, gene_a_code TEXT NOT NULL, gene_a_category TEXT NOT NULL, gene_b_code TEXT NOT NULL, gene_b_category TEXT NOT NULL, strength REAL DEFAULT 0.5, co_occurrence_count INTEGER DEFAULT 1, created_at DATETIME DEFAULT (datetime('now')), last_seen_at DATETIME DEFAULT (datetime('now')), UNIQUE(gene_a_code, gene_a_category, gene_b_code, gene_b_category))`);
+      },
+      3: () => {
+        const addCol = (c: string, type: string, def: string) => { try { this.db.exec(`ALTER TABLE genes ADD COLUMN ${c} ${type} DEFAULT ${def}`); } catch { /* exists */ } };
+        addCol('q_variance', 'REAL', '0.25');
+        addCol('q_count', 'INTEGER', '0');
+        addCol('last_5_rewards', 'TEXT', "'[]'");
+      },
+      4: () => {
+        const addCol = (t: string, c: string, type: string, def: string) => { try { this.db.exec(`ALTER TABLE ${t} ADD COLUMN ${c} ${type} DEFAULT ${def}`); } catch { /* exists */ } };
+        addCol('gene_links', 'transition_probability', 'REAL', '0.0');
+        addCol('gene_links', 'avg_delay_ms', 'REAL', '0.0');
+        addCol('gene_links', 'from_count', 'INTEGER', '0');
       },
     };
     this.db.transaction(() => {
@@ -100,18 +158,30 @@ export class GeneMap {
 
   // ── Core CRUD ──
 
-  lookup(code: ErrorCode, category: FailureCategory): GeneCapsule | null {
+  lookup(code: ErrorCode, category: FailureCategory, context?: RepairContext): GeneCapsule | null {
     const key = this.cacheKey(code, category);
+    let gene: GeneCapsule;
     if (!this.isCacheStale() && this.cache.has(key)) {
       const cached = this.cache.get(key)!;
       this.db.prepare(`UPDATE genes SET last_used_at = datetime('now'), success_count = success_count + 1 WHERE failure_code = ? AND category = ?`).run(code, category);
-      const gene = parseRow(cached); gene.successCount += 1; return gene;
+      gene = parseRow(cached); gene.successCount += 1;
+    } else {
+      const row = this.stmtLookup.get(code, category) as Record<string, unknown> | undefined;
+      if (!row) return null;
+      this.db.prepare(`UPDATE genes SET last_used_at = datetime('now'), success_count = success_count + 1 WHERE failure_code = ? AND category = ?`).run(code, category);
+      this.cache.set(key, row);
+      gene = parseRow(row); gene.successCount += 1;
     }
-    const row = this.stmtLookup.get(code, category) as Record<string, unknown> | undefined;
-    if (!row) return null;
-    this.db.prepare(`UPDATE genes SET last_used_at = datetime('now'), success_count = success_count + 1 WHERE failure_code = ? AND category = ?`).run(code, category);
-    this.cache.set(key, row);
-    const gene = parseRow(row); gene.successCount += 1; return gene;
+
+    if (!context) return gene;
+
+    const similarity = contextSimilarity(gene, context);
+    return {
+      ...gene,
+      qValue: gene.qValue * similarity,
+      _originalQValue: gene.qValue,
+      _contextSimilarity: similarity,
+    };
   }
 
   addPlatform(code: ErrorCode, category: FailureCategory, platform: Platform): void {
@@ -126,19 +196,55 @@ export class GeneMap {
     this.cache.delete(this.cacheKey(gene.failureCode, gene.category));
   }
 
-  recordSuccess(code: string, category: string, repairMs: number): void {
+  recordSuccess(code: string, category: string, repairMs: number, context?: RepairContext): void {
     const row = this.stmtLookup.get(code, category) as Record<string, unknown> | undefined;
     if (!row) return;
-    const newQ = (row.q_value as number) + 0.1 * (1.0 - (row.q_value as number));
-    this.db.prepare(`UPDATE genes SET q_value = ?, avg_repair_ms = (avg_repair_ms * success_count + ?) / (success_count + 1), success_count = success_count + 1, last_success_at = ?, consecutive_failures = 0, last_used_at = datetime('now') WHERE failure_code = ? AND category = ?`).run(newQ, repairMs, Date.now(), code, category);
+    const reward = 1.0;
+    const qCount = (row.q_count as number) ?? 0;
+    const last5: number[] = row.last_5_rewards ? JSON.parse(row.last_5_rewards as string) : [];
+    const alpha = calculateAdaptiveAlpha(qCount, last5);
+    const oldQ = row.q_value as number;
+    const newQ = oldQ + alpha * (reward - oldQ);
+    const newLast5 = [...last5, reward].slice(-5);
+    const newVariance = newLast5.length >= 2
+      ? newLast5.reduce((s, r) => s + (r - newLast5.reduce((a, b) => a + b, 0) / newLast5.length) ** 2, 0) / (newLast5.length - 1)
+      : 0.25;
+    this.db.prepare(`UPDATE genes SET q_value = ?, q_variance = ?, q_count = ?, last_5_rewards = ?, avg_repair_ms = (avg_repair_ms * success_count + ?) / (success_count + 1), success_count = success_count + 1, last_success_at = ?, consecutive_failures = 0, last_used_at = datetime('now') WHERE failure_code = ? AND category = ?`).run(newQ, newVariance, qCount + 1, JSON.stringify(newLast5), repairMs, Date.now(), code, category);
+
+    // Store context snapshot
+    if (context) {
+      const existing = getContextArray(row.success_context as string);
+      existing.push(simplifyContext(context));
+      if (existing.length > 10) existing.shift();
+      this.db.prepare('UPDATE genes SET success_context = ? WHERE failure_code = ? AND category = ?').run(JSON.stringify(existing), code, category);
+    }
+
     this.cache.delete(this.cacheKey(code, category));
   }
 
-  recordFailure(code: string, category: string): void {
+  recordFailure(code: string, category: string, context?: RepairContext): void {
     const row = this.stmtLookup.get(code, category) as Record<string, unknown> | undefined;
     if (!row) return;
-    const newQ = (row.q_value as number) + 0.1 * (0.0 - (row.q_value as number));
-    this.db.prepare(`UPDATE genes SET q_value = ?, last_failed_at = ?, consecutive_failures = consecutive_failures + 1, last_used_at = datetime('now') WHERE failure_code = ? AND category = ?`).run(newQ, Date.now(), code, category);
+    const reward = 0.0;
+    const qCount = (row.q_count as number) ?? 0;
+    const last5: number[] = row.last_5_rewards ? JSON.parse(row.last_5_rewards as string) : [];
+    const alpha = calculateAdaptiveAlpha(qCount, last5);
+    const oldQ = row.q_value as number;
+    const newQ = oldQ + alpha * (reward - oldQ);
+    const newLast5 = [...last5, reward].slice(-5);
+    const newVariance = newLast5.length >= 2
+      ? newLast5.reduce((s, r) => s + (r - newLast5.reduce((a, b) => a + b, 0) / newLast5.length) ** 2, 0) / (newLast5.length - 1)
+      : 0.25;
+    this.db.prepare(`UPDATE genes SET q_value = ?, q_variance = ?, q_count = ?, last_5_rewards = ?, last_failed_at = ?, consecutive_failures = consecutive_failures + 1, last_used_at = datetime('now') WHERE failure_code = ? AND category = ?`).run(newQ, newVariance, qCount + 1, JSON.stringify(newLast5), Date.now(), code, category);
+
+    // Store context snapshot
+    if (context) {
+      const existing = getContextArray(row.failure_context as string);
+      existing.push(simplifyContext(context));
+      if (existing.length > 10) existing.shift();
+      this.db.prepare('UPDATE genes SET failure_context = ? WHERE failure_code = ? AND category = ?').run(JSON.stringify(existing), code, category);
+    }
+
     this.cache.delete(this.cacheKey(code, category));
   }
 
@@ -268,7 +374,7 @@ export class GeneMap {
 
   // ── Health (for CLI) ──
 
-  health(): { totalGenes: number; avgQValue: number; platforms: string[]; topStrategies: { strategy: string; qValue: number; count: number }[] } {
+  health(): { totalGenes: number; avgQValue: number; platforms: string[]; topStrategies: { strategy: string; qValue: number; qVariance: number; qCount: number; count: number }[] } {
     const rows = this.stmtList.all() as Record<string, unknown>[];
     const allP = new Set<string>();
     let qSum = 0;
@@ -277,9 +383,35 @@ export class GeneMap {
       totalGenes: rows.length,
       avgQValue: rows.length > 0 ? qSum / rows.length : 0,
       platforms: [...allP],
-      topStrategies: rows.slice(0, 10).map(r => ({ strategy: r.strategy as string, qValue: r.q_value as number, count: r.success_count as number })),
+      topStrategies: rows.slice(0, 10).map(r => ({ strategy: r.strategy as string, qValue: r.q_value as number, qVariance: (r.q_variance as number) ?? 0.25, qCount: (r.q_count as number) ?? 0, count: r.success_count as number })),
     };
   }
+
+  // ── Audit Log ──
+
+  recordAudit(entry: { agentId: string; errorMessage: string; failureCode: string; failureCategory: string; strategy: string; immune: boolean; success: boolean; verifyPassed?: boolean; mode: string; durationMs: number; qBefore?: number; qAfter?: number; overrides?: Record<string, unknown>; chainSteps?: string[]; predictions?: { code: string; probability: number }[] }): void {
+    this.db.prepare(`INSERT INTO repair_audit (timestamp, agent_id, error_message, failure_code, failure_category, strategy, immune, success, verify_passed, mode, duration_ms, q_before, q_after, overrides, chain_steps, predictions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      Date.now(), entry.agentId, entry.errorMessage.slice(0, 500), entry.failureCode, entry.failureCategory, entry.strategy, entry.immune ? 1 : 0, entry.success ? 1 : 0, entry.verifyPassed !== false ? 1 : 0, entry.mode, entry.durationMs, entry.qBefore ?? null, entry.qAfter ?? null, entry.overrides ? JSON.stringify(entry.overrides) : null, entry.chainSteps ? JSON.stringify(entry.chainSteps) : null, entry.predictions ? JSON.stringify(entry.predictions) : null,
+    );
+  }
+
+  getAuditLog(limit: number = 20): { timestamp: number; agentId: string; failureCode: string; failureCategory: string; strategy: string; immune: boolean; success: boolean; durationMs: number; mode: string }[] {
+    return this.db.prepare(`SELECT timestamp, agent_id as agentId, failure_code as failureCode, failure_category as failureCategory, strategy, immune, success, duration_ms as durationMs, mode FROM repair_audit ORDER BY timestamp DESC LIMIT ?`).all(limit).map((row: any) => ({ ...row, immune: !!row.immune, success: !!row.success })) as any[];
+  }
+
+  exportAudit(since?: number): string {
+    const rows = since
+      ? this.db.prepare('SELECT * FROM repair_audit WHERE timestamp >= ? ORDER BY timestamp ASC').all(since)
+      : this.db.prepare('SELECT * FROM repair_audit ORDER BY timestamp ASC').all();
+    return JSON.stringify(rows, null, 2);
+  }
+
+  // ── Predictive Failure Graph (delegated to GenePredictiveGraph) ──
+
+  recordTransition(fromCode: string, fromCategory: string, toCode: string, toCategory: string, delayMs: number): void { this.predict.recordTransition(fromCode, fromCategory, toCode, toCategory, delayMs); }
+  predictNext(code: string, category: string, minProbability: number = 0.1) { return this.predict.predictNext(code, category, minProbability); }
+  preload(code: ErrorCode, category: FailureCategory): void { this.predict.preload(code, category); }
+  getLinks(code: string, category: string) { return this.predict.getLinks(code, category); }
 
   close(): void { this.db.close(); }
 }

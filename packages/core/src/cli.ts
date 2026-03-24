@@ -17,6 +17,7 @@ function printHelp() {
     simulate   Dry-run diagnosis
     gc         Gene Map garbage collection
     stats      Agent attribution stats
+    audit      Show repair audit log
     help       Show this help
 
   Examples:
@@ -40,7 +41,9 @@ function status() {
   ├─────────────────────────────────────┤
   │  Top Strategies:                    │`);
   for (const s of (h.topStrategies || []).slice(0, 5)) {
-    console.log(`  │    ${s.strategy.padEnd(22)} q=${s.qValue.toFixed(2)}  │`);
+    const sigma = s.qVariance !== undefined ? ` ±${Math.sqrt(s.qVariance).toFixed(2)}` : '';
+    const nStr = s.qCount !== undefined ? ` n=${s.qCount}` : '';
+    console.log(`  │    ${s.strategy.padEnd(18)} q=${s.qValue.toFixed(2)}${sigma}${nStr} │`);
   }
   console.log(`  └─────────────────────────────────────┘`);
   engine.getGeneMap().close();
@@ -123,6 +126,25 @@ function agentStats(agentId: string) {
       console.log(`  Reasoning: ${g?.reasoning || '(not generated — enable LLM)'}`);
       console.log(`  Root cause: ${r.failure.rootCauseHint ?? 'N/A'}\n`);
       eng.getGeneMap().close();
+      break;
+    }
+    case 'audit': {
+      const count = parseInt(process.argv[3] || '20');
+      const isJson = process.argv.includes('--json');
+      const engine = createEngine({ mode: 'observe', agentId: 'cli', geneMapPath: ':memory:' } as WrapOptions);
+      const log = engine.getGeneMap().getAuditLog(count);
+      if (isJson) {
+        console.log(JSON.stringify(log, null, 2));
+      } else {
+        console.log(`\n  HELIX AUDIT LOG (last ${log.length} entries)\n`);
+        for (const entry of log) {
+          const time = new Date(entry.timestamp).toLocaleTimeString();
+          const status = entry.success ? (entry.immune ? '⚡ IMMUNE' : '✅ REPAIRED') : '❌ FAILED';
+          console.log(`  ${time}  ${entry.agentId.padEnd(12)} ${entry.failureCode.padEnd(22)} ${status.padEnd(14)} ${entry.strategy.padEnd(20)} ${entry.durationMs}ms`);
+        }
+        console.log('');
+      }
+      engine.getGeneMap().close();
       break;
     }
     case 'help': case '--help': case '-h': case undefined: printHelp(); break;

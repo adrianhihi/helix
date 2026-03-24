@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.4.0] - 2026-03-24
+
+### Added
+- **OpenTelemetry Integration**: Optional tracing spans + metrics (helix.repair.count, helix.immune.count, helix.repair.duration_ms). Zero overhead when not configured.
+- **Audit Log**: repair_audit table records every repair attempt. npx helix audit, exportAudit() for SIEM/compliance.
+- 247 tests across 29 files (from 235/28)
+
+## [1.3.0] - 2026-03-24
+
+### Added
+- **Adaptive Learning Rate**: α dynamically adjusts based on observation count and recent variance
+- **Bayesian Q-value**: Gene stores q ± σ (mean + uncertainty), Thompson Sampling for explore/exploit
+- **Strategy Composition**: Multi-step repair chains [refresh_nonce → speed_up_transaction]
+- **Context-Aware Gene Map**: Lookup adjusts Q-value based on gas price, time of day, chain ID similarity
+- **Predictive Failure Graph**: Predicts next likely error, preloads Gene into L1 cache
+- **Business-Level Verify**: User-provided verify() callback rejects technically-successful but logically-wrong repairs
+- Schema v5 (from v3): q_variance, q_count, last_5_rewards, transition_probability, avg_delay_ms
+- 235 tests across 28 files (from 174/23)
+
+### Fixed
+- Strategy chain overrides now propagate between steps (context spreading fix)
+- avg_delay_ms incremental average calculation in gene_links
+
 ## [1.2.0] - 2026-03-23
 
 ### Added

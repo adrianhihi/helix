@@ -52,15 +52,56 @@ export function wrap<TArgs extends unknown[], TResult>(
     if (!enabled) return fn(...args);
 
     let currentArgs = args;
+    let lastRepairResult: RepairResult | null = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const result = await fn(...currentArgs);
         if (attempt > 0) {
+          // Business-level verify: check that the result is correct, not just successful
+          if (options?.verify && lastRepairResult) {
+            try {
+              const isValid = await options.verify(result, args as unknown[]);
+              if (!isValid) {
+                log.warn('Business verification failed — repair result rejected', {
+                  strategy: lastRepairResult.winner?.strategy,
+                });
+                // Record as failure in Gene Map (q_value decreases)
+                const { engine } = getDefaultEngine(options);
+                engine.getGeneMap().recordFailure(
+                  lastRepairResult.failure.code,
+                  lastRepairResult.failure.category,
+                );
+                const verifyError = new Error(
+                  `Helix repair succeeded but business verification failed. ` +
+                  `Strategy: ${lastRepairResult.winner?.strategy ?? lastRepairResult.gene?.strategy}.`
+                );
+                (verifyError as any)._helix = {
+                  ...lastRepairResult,
+                  verifyFailed: true,
+                  repaired: false,
+                };
+                throw verifyError;
+              }
+            } catch (verifyErr: any) {
+              if (verifyErr._helix?.verifyFailed) throw verifyErr;
+              log.error('verify() callback threw an error', { error: verifyErr.message });
+              const { engine } = getDefaultEngine(options);
+              engine.getGeneMap().recordFailure(
+                lastRepairResult.failure.code,
+                lastRepairResult.failure.category,
+              );
+              verifyErr._helixVerifyError = true;
+              throw verifyErr;
+            }
+          }
           return Object.assign(result as object, { _helix: { repaired: true, attempts: attempt + 1, totalMs: Date.now() - startTime } }) as TResult;
         }
         return result;
       } catch (error) {
+        // Business verify failure — exit immediately, don't re-enter PCEC
+        if ((error as any)?._helix?.verifyFailed || (error as any)?._helixVerifyError) throw error;
+
         if (attempt === maxRetries) {
           log.error('All repair attempts exhausted', { attempts: maxRetries });
           throw error;
@@ -79,6 +120,7 @@ export function wrap<TArgs extends unknown[], TResult>(
             chainId: (error as any)?.chain?.id,
             walletAddress: (error as any)?.account?.address,
           });
+          lastRepairResult = result;
 
           if (result.success) options?.onRepair?.(result);
           else options?.onFailure?.(result);
