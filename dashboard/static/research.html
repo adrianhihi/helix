@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helix — Self-Evolution Research</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c10;
+  --surface: #12141a;
+  --border: rgba(255,255,255,0.07);
+  --border-hover: rgba(255,255,255,0.15);
+  --text: #c8cad0;
+  --text-dim: #5a5e6a;
+  --text-bright: #eaecf0;
+  --amber: #f0a030;
+  --amber-bg: rgba(240,160,48,0.08);
+  --amber-border: rgba(240,160,48,0.2);
+  --green: #4ade80;
+  --green-bg: rgba(74,222,128,0.08);
+  --green-border: rgba(74,222,128,0.2);
+  --blue: #60a5fa;
+  --blue-bg: rgba(96,165,250,0.08);
+  --blue-border: rgba(96,165,250,0.2);
+  --red: #f87171;
+  --red-bg: rgba(248,113,113,0.08);
+  --red-border: rgba(248,113,113,0.2);
+  --purple: #a78bfa;
+  --purple-bg: rgba(167,139,250,0.08);
+  --purple-border: rgba(167,139,250,0.2);
+  --teal: #2dd4bf;
+  --teal-bg: rgba(45,212,191,0.08);
+  --teal-border: rgba(45,212,191,0.2);
+  --coral: #fb923c;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Outfit', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,12,16,0.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:52px}
+nav .brand{font-weight:800;font-size:15px;color:var(--amber);letter-spacing:1px;text-decoration:none}
+nav .links{display:flex;gap:20px;align-items:center}
+nav .links a{font-size:11px;font-weight:500;color:var(--text-dim);text-decoration:none;transition:color .2s;letter-spacing:.3px}
+nav .links a:hover{color:var(--text-bright)}
+nav .cta{font-family:var(--mono);font-size:11px;padding:6px 14px;background:var(--amber-bg);border:1px solid var(--amber-border);color:var(--amber);border-radius:6px;text-decoration:none;font-weight:600;transition:all .2s}
+nav .cta:hover{background:rgba(240,160,48,0.15);border-color:var(--amber)}
+
+.container{max-width:860px;margin:0 auto;padding:0 24px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes spinR{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px rgba(240,160,48,0.08)}50%{box-shadow:0 0 28px rgba(240,160,48,0.25)}}
+@keyframes ripple{0%{transform:scale(1);opacity:.5}100%{transform:scale(2.8);opacity:0}}
+@keyframes orbit1{from{transform:rotate(0deg) translateX(110px) rotate(0deg)}to{transform:rotate(360deg) translateX(110px) rotate(-360deg)}}
+@keyframes orbit2{from{transform:rotate(72deg) translateX(110px) rotate(-72deg)}to{transform:rotate(432deg) translateX(110px) rotate(-432deg)}}
+@keyframes orbit3{from{transform:rotate(144deg) translateX(110px) rotate(-144deg)}to{transform:rotate(504deg) translateX(110px) rotate(-504deg)}}
+@keyframes orbit4{from{transform:rotate(216deg) translateX(110px) rotate(-216deg)}to{transform:rotate(576deg) translateX(110px) rotate(-576deg)}}
+@keyframes orbit5{from{transform:rotate(288deg) translateX(110px) rotate(-288deg)}to{transform:rotate(648deg) translateX(110px) rotate(-648deg)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@keyframes colorCycle{0%{color:#a78bfa}25%{color:#f0a030}50%{color:#60a5fa}75%{color:#4ade80}100%{color:#a78bfa}}
+@keyframes scanDown{0%{top:-2px;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:calc(100% - 2px);opacity:0}}
+@keyframes barGrow{from{width:0}to{width:var(--w)}}
+@keyframes dash{to{stroke-dashoffset:-40}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+
+.hero{text-align:center;padding:110px 0 40px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:30px;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(167,139,250,.06),transparent 70%);pointer-events:none}
+.hero-tag{font-size:11px;font-family:var(--mono);color:var(--text-dim);letter-spacing:3px;text-transform:uppercase;animation:fadeUp .5s both}
+.hero-title{font-size:clamp(26px,4vw,38px);font-weight:800;color:var(--text-bright);letter-spacing:-1px;line-height:1.15;margin:12px 0;animation:fadeUp .5s .1s both}
+.hero-title .accent{animation:colorCycle 10s infinite}
+.hero-sub{font-size:14px;color:var(--text);max-width:520px;margin:0 auto;animation:fadeUp .5s .2s both}
+
+.section{padding:40px 0 0}
+.s-title{font-size:18px;font-weight:700;color:var(--text-bright);display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.s-sub{font-size:12px;color:var(--text-dim);margin-bottom:16px;max-width:540px}
+.s-dot{width:8px;height:8px;border-radius:50%}
+.s-dot.pulse{animation:pulse 2s infinite}
+
+/* Reactor */
+.reactor-wrap{display:flex;justify-content:center;padding:1.5rem 0;animation:fadeUp .6s .3s both}
+.reactor{position:relative;width:260px;height:260px}
+.reactor-ring{position:absolute;border-radius:50%;border:0.5px solid var(--border)}
+.reactor-ring.r1{inset:0;animation:spin 25s linear infinite;border-style:dashed;border-color:rgba(167,139,250,.15)}
+.reactor-ring.r2{inset:22px;animation:spinR 18s linear infinite;border-color:rgba(240,160,48,.15)}
+.reactor-ring.r3{inset:50px;animation:spin 12s linear infinite;border-color:rgba(96,165,250,.15)}
+.reactor-core{position:absolute;inset:68px;border-radius:50%;background:radial-gradient(circle,rgba(167,139,250,.1),transparent 70%);display:flex;align-items:center;justify-content:center;animation:breathe 4s infinite}
+.reactor-core-inner{text-align:center}
+.reactor-core-inner strong{display:block;font-size:18px;font-weight:700;animation:colorCycle 8s infinite}
+.reactor-core-inner span{font-size:9px;font-family:var(--mono);color:var(--text-dim);letter-spacing:1px}
+.orb{position:absolute;border-radius:50%;top:50%;left:50%}
+.orb.o1{width:10px;height:10px;background:var(--purple);margin:-5px;animation:orbit1 9s linear infinite;box-shadow:0 0 14px rgba(167,139,250,.6)}
+.orb.o2{width:9px;height:9px;background:var(--amber);margin:-4.5px;animation:orbit2 9s linear infinite;box-shadow:0 0 12px rgba(240,160,48,.6)}
+.orb.o3{width:8px;height:8px;background:var(--blue);margin:-4px;animation:orbit3 9s linear infinite;box-shadow:0 0 10px rgba(96,165,250,.6)}
+.orb.o4{width:7px;height:7px;background:var(--green);margin:-3.5px;animation:orbit4 9s linear infinite;box-shadow:0 0 10px rgba(74,222,128,.6)}
+.orb.o5{width:8px;height:8px;background:var(--red);margin:-4px;animation:orbit5 9s linear infinite;box-shadow:0 0 10px rgba(248,113,113,.6)}
+
+/* Kappa box */
+.kappa{background:var(--surface);border-radius:12px;padding:16px 24px;border:1px solid var(--border);position:relative;overflow:hidden;text-align:center;animation:fadeUp .5s .4s both}
+.kappa::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(167,139,250,.03),rgba(240,160,48,.03));pointer-events:none}
+.kappa-formula{font-family:var(--mono);font-size:15px;color:var(--text-bright);padding:6px 0}
+.kappa-sub{font-size:11px;color:var(--text-dim)}
+.kappa-sub a{color:var(--purple);text-decoration:none}
+
+/* Trade-off grid */
+.tradeoff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tradeoff-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border);cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.tradeoff-card:hover{border-color:var(--border-hover);transform:translateY(-2px)}
+.tradeoff-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+.tradeoff-card.memrl::after{background:var(--purple)}
+.tradeoff-card.evolver::after{background:var(--amber)}
+.tradeoff-card.selfplay::after{background:var(--blue)}
+.tradeoff-card.sdpo::after{background:var(--green)}
+.tradeoff-card.gvu::after{background:var(--red)}
+.tradeoff-card.distill::after{background:var(--teal)}
+.tc-icon{font-size:22px;margin-bottom:8px}
+.tc-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.tc-paper{font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-bottom:8px}
+.tc-paper a{color:inherit;text-decoration:none}
+.tc-paper a:hover{color:var(--text-bright)}
+.tc-desc{font-size:11px;color:var(--text-dim);line-height:1.5;margin-bottom:10px;min-height:48px}
+.tc-meters{display:flex;flex-direction:column;gap:6px}
+.meter-row{display:flex;align-items:center;gap:6px}
+.meter-label{font-size:9px;font-family:var(--mono);color:var(--text-dim);width:52px;text-align:right;flex-shrink:0}
+.meter-track{flex:1;height:4px;background:rgba(255,255,255,0.04);border-radius:2px;overflow:hidden}
+.meter-fill{height:100%;border-radius:2px;animation:barGrow 1.5s ease both}
+.tc-verdict{font-size:10px;font-family:var(--mono);padding:4px 10px;border-radius:20px;display:inline-block;margin-top:8px}
+
+/* Detail panel */
+.detail{background:rgba(255,255,255,0.02);border-radius:8px;padding:14px 18px;margin-top:10px;display:none;font-size:12px;color:var(--text-dim);line-height:1.7;border:1px solid var(--border);animation:slideIn .3s both}
+.detail.open{display:block}
+.detail code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;color:var(--text)}
+.detail h4{font-size:13px;color:var(--text-bright);font-weight:600;margin:8px 0 4px}
+.detail ul{padding-left:16px;margin:4px 0}
+.detail li{margin:2px 0}
+
+/* Versus section */
+.vs-row{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start;margin:16px 0}
+.vs-col{background:var(--surface);border-radius:12px;padding:16px 18px;border:1px solid var(--border)}
+.vs-col h4{font-size:14px;font-weight:600;margin-bottom:8px}
+.vs-col ul{font-size:12px;color:var(--text-dim);list-style:none;padding:0}
+.vs-col li{padding:3px 0;display:flex;align-items:flex-start;gap:6px}
+.vs-col li::before{content:'';flex-shrink:0;margin-top:6px}
+.vs-divider{display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--text-dim)}
+
+/* Architecture stack */
+.stack{display:flex;flex-direction:column;gap:0;margin:16px 0}
+.stack-layer{background:var(--surface);border:1px solid var(--border);padding:14px 18px;transition:all .25s;cursor:pointer;position:relative;overflow:hidden}
+.stack-layer:first-child{border-radius:12px 12px 0 0}
+.stack-layer:last-child{border-radius:0 0 12px 12px}
+.stack-layer:hover{border-color:var(--border-hover)}
+.stack-layer::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.sl-head{display:flex;justify-content:space-between;align-items:center}
+.sl-name{font-size:13px;font-weight:600}
+.sl-badge{font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:20px}
+.sl-desc{font-size:11px;color:var(--text-dim);margin-top:3px}
+.sl-paper{font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-top:4px}
+.sl-paper a{color:var(--purple);text-decoration:none}
+
+/* Timeline */
+.timeline{display:flex;gap:3px;margin:16px 0}
+.tl-item{flex:1;padding:12px 8px;border-radius:10px;text-align:center;border:1px solid var(--border);transition:all .25s;cursor:pointer;position:relative;overflow:hidden}
+.tl-item:hover{transform:translateY(-2px);border-color:var(--border-hover)}
+.tl-bar{position:absolute;bottom:0;left:0;height:3px;border-radius:0 0 4px 4px;animation:barGrow 2s ease both}
+.tl-time{font-size:9px;font-family:var(--mono);color:var(--text-dim)}
+.tl-name{font-size:12px;font-weight:600;margin:3px 0}
+.tl-cap{font-size:9px;color:var(--text-dim)}
+
+/* Quote */
+.quote{background:var(--surface);border-radius:12px;padding:18px 24px;margin:20px 0;border-left:3px solid;position:relative}
+.quote p{font-size:13px;line-height:1.7;color:var(--text-bright);font-style:italic}
+.quote .attr{font-size:10px;color:var(--text-dim);margin-top:8px;font-style:normal;font-family:var(--mono)}
+
+/* Feedback bar */
+.fb-bar{display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px 14px;border-radius:8px;border:1px dashed var(--border);font-size:12px;color:var(--text-dim);animation:glow 4s infinite}
+.fb-sym{font-family:var(--mono);font-size:14px;animation:pulse 2s infinite}
+
+/* Loop flow */
+.loop-flow{position:relative;margin:16px 0}
+.loop-flow::before{content:'';position:absolute;left:21px;top:28px;bottom:28px;width:0.5px;background:var(--border)}
+.loop-step{display:flex;gap:14px;padding:10px 0;cursor:pointer;transition:transform .15s}
+.loop-step:hover{transform:translateX(4px)}
+.loop-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:17px;z-index:1;border:1px solid var(--border);position:relative;overflow:hidden}
+.loop-icon::after{content:'';position:absolute;top:-2px;left:0;right:0;height:2px;border-radius:1px;animation:scanDown 3s linear infinite}
+.loop-body{flex:1}
+.loop-name{font-size:13px;font-weight:600}
+.loop-desc{font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:2px}
+.loop-paper{font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-top:4px;padding:3px 8px;background:var(--surface);border-radius:6px;display:inline-block;border:1px solid var(--border)}
+.loop-paper a{color:var(--purple);text-decoration:none}
+
+.footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display:flex;justify-content:center;gap:24px;font-size:11px;color:var(--text-dim);flex-wrap:wrap}
+.footer a{color:var(--amber);text-decoration:none}
+
+@media(max-width:700px){
+  .tradeoff-grid{grid-template-columns:1fr}
+  .vs-row{grid-template-columns:1fr;gap:8px}
+  .vs-divider{transform:rotate(90deg)}
+  .timeline{flex-wrap:wrap}
+  .tl-item{min-width:calc(50% - 4px)}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="/">HELIX</a>
+  <div class="links">
+    <a href="/">Vision</a>
+    <a href="#methods">Methods</a>
+    <a href="#tradeoff">Trade-off</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#gene-dream">Gene Dream</a>
+    <a href="#timeline">Timeline</a>
+    <a href="/lab">Lab</a>
+    <a href="/docs">Docs</a>
+    <a href="/benchmark">Benchmark</a>
+    <a class="cta" href="https://github.com/adrianhihi/helix" target="_blank">GitHub →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-tag">Self-Evolution Research</div>
+  <h1 class="hero-title">How Helix <span class="accent">evolves itself</span></h1>
+  <p class="hero-sub">Five research methods. Four arXiv papers. One recursive improvement loop. The system that gets better at getting better.</p>
+</section>
+
+<!-- Reactor -->
+<div class="reactor-wrap">
+  <div class="reactor">
+    <div class="reactor-ring r1"></div>
+    <div class="reactor-ring r2"></div>
+    <div class="reactor-ring r3"></div>
+    <div class="orb o1" title="MemRL"></div>
+    <div class="orb o2" title="EvolveR"></div>
+    <div class="orb o3" title="Self-Play"></div>
+    <div class="orb o4" title="SDPO"></div>
+    <div class="orb o5" title="GVU"></div>
+    <div class="reactor-core">
+      <div class="reactor-core-inner">
+        <strong>κ > 0</strong>
+        <span>SELF-IMPROVING</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GVU Theory -->
+<div class="kappa">
+  <div class="kappa-formula">G(generate) → V(verify) → U(update) → κ > 0 → ∞ improvement</div>
+  <div class="kappa-sub">GVU Operator — <a href="https://arxiv.org/abs/2512.02731">arXiv:2512.02731</a> — PCEC is a GVU instance. Mathematically proven: if signal > noise, self-improvement is guaranteed.</div>
+</div>
+
+<!-- 6 Methods Trade-off -->
+<section class="section" id="methods">
+  <div class="s-title"><span class="s-dot pulse" style="background:var(--purple)"></span>Six methods compared</div>
+  <div class="s-sub">Two families: distillation-based (need GPU/training) and memory-based (no training needed). We chose the best from each.</div>
+
+  <div class="tradeoff-grid">
+
+    <div class="tradeoff-card memrl" onclick="toggle('d-memrl')">
+      <div class="tc-icon">🧠</div>
+      <div class="tc-name" style="color:var(--purple)">MemRL</div>
+      <div class="tc-paper"><a href="https://arxiv.org/abs/2601.03192">arXiv:2601.03192 (2026)</a></div>
+      <div class="tc-desc">Episodic memory + Q-value utility. High-utility memories retrieved more, low-utility forgotten. Frozen backbone — LLM unchanged, memory evolves.</div>
+      <div class="tc-meters">
+        <div class="meter-row"><span class="meter-label">Helix fit</span><div class="meter-track"><div class="meter-fill" style="--w:95%;background:var(--purple)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">Easy</span><div class="meter-track"><div class="meter-fill" style="--w:95%;background:var(--green)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">VC story</span><div class="meter-track"><div class="meter-fill" style="--w:75%;background:var(--amber)"></div></div></div>
+      </div>
+      <div class="tc-verdict" style="background:var(--green-bg);color:var(--green)">✓ Already shipped in v1.5</div>
+    </div>
+
+    <div class="tradeoff-card evolver" onclick="toggle('d-evolver')">
+      <div class="tc-icon">⚗️</div>
+      <div class="tc-name" style="color:var(--amber)">EvolveR</div>
+      <div class="tc-paper"><a href="https://arxiv.org/abs/2510.16079">arXiv:2510.16079 (2025)</a></div>
+      <div class="tc-desc">Experience → abstract strategic principles. Not "nonce → refresh" but "state desync → refresh from source of truth." Knowledge distillation, not model distillation.</div>
+      <div class="tc-meters">
+        <div class="meter-row"><span class="meter-label">Helix fit</span><div class="meter-track"><div class="meter-fill" style="--w:95%;background:var(--purple)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">Easy</span><div class="meter-track"><div class="meter-fill" style="--w:85%;background:var(--green)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">VC story</span><div class="meter-track"><div class="meter-fill" style="--w:60%;background:var(--amber)"></div></div></div>
+      </div>
+      <div class="tc-verdict" style="background:var(--amber-bg);color:var(--amber)">→ Next: Q2 2026</div>
+    </div>
+
+    <div class="tradeoff-card selfplay" onclick="toggle('d-selfplay')">
+      <div class="tc-icon">⚔️</div>
+      <div class="tc-name" style="color:var(--blue)">Self-Play SWE-RL</div>
+      <div class="tc-paper"><a href="https://arxiv.org/abs/2512.18552">arXiv:2512.18552 (2025)</a></div>
+      <div class="tc-desc">Challenger generates failures → Repair agent fixes → Verifier validates. No real users needed. 24/7 evolution. Paper title: "toward superintelligent agents."</div>
+      <div class="tc-meters">
+        <div class="meter-row"><span class="meter-label">Helix fit</span><div class="meter-track"><div class="meter-fill" style="--w:95%;background:var(--purple)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">Easy</span><div class="meter-track"><div class="meter-fill" style="--w:65%;background:var(--amber)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">VC story</span><div class="meter-track"><div class="meter-fill" style="--w:98%;background:var(--green)"></div></div></div>
+      </div>
+      <div class="tc-verdict" style="background:var(--blue-bg);color:var(--blue)">⭐ Most recommended</div>
+    </div>
+
+    <div class="tradeoff-card sdpo" onclick="toggle('d-sdpo')">
+      <div class="tc-icon">🔄</div>
+      <div class="tc-name" style="color:var(--green)">SDPO</div>
+      <div class="tc-paper"><a href="https://arxiv.org/abs/2601.20802">arXiv:2601.20802 (2026)</a></div>
+      <div class="tc-desc">Self-Distillation Policy Optimization. Model sees own failures + rich feedback → teaches itself. No external teacher. No reward model. Gene Map is the feedback.</div>
+      <div class="tc-meters">
+        <div class="meter-row"><span class="meter-label">Helix fit</span><div class="meter-track"><div class="meter-fill" style="--w:80%;background:var(--purple)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">Easy</span><div class="meter-track"><div class="meter-fill" style="--w:55%;background:var(--amber)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">VC story</span><div class="meter-track"><div class="meter-fill" style="--w:90%;background:var(--green)"></div></div></div>
+      </div>
+      <div class="tc-verdict" style="background:var(--purple-bg);color:var(--purple)">→ Post-funding: Q4 2026</div>
+    </div>
+
+    <div class="tradeoff-card distill" onclick="toggle('d-distill')">
+      <div class="tc-icon">🧪</div>
+      <div class="tc-name" style="color:var(--teal)">Classic Distillation</div>
+      <div class="tc-paper">DeepSeek-style teacher→student</div>
+      <div class="tc-desc">GPT-4 as teacher → train 7B student model. Student replaces LLM fallback. 100× faster, 1000× cheaper. But ceiling = teacher level.</div>
+      <div class="tc-meters">
+        <div class="meter-row"><span class="meter-label">Helix fit</span><div class="meter-track"><div class="meter-fill" style="--w:60%;background:var(--purple)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">Easy</span><div class="meter-track"><div class="meter-fill" style="--w:40%;background:var(--red)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">VC story</span><div class="meter-track"><div class="meter-fill" style="--w:85%;background:var(--green)"></div></div></div>
+      </div>
+      <div class="tc-verdict" style="background:var(--surface);color:var(--text-dim)">△ Needs GPU + ML team</div>
+    </div>
+
+    <div class="tradeoff-card gvu" onclick="toggle('d-gvu')">
+      <div class="tc-icon">∞</div>
+      <div class="tc-name" style="color:var(--red)">GVU Theory</div>
+      <div class="tc-paper"><a href="https://arxiv.org/abs/2512.02731">arXiv:2512.02731 (2025)</a></div>
+      <div class="tc-desc">Mathematical proof: Generator→Verifier→Updater. If signal > noise, κ > 0, improvement is guaranteed. "Second Law of AGI Dynamics." PCEC is a GVU instance.</div>
+      <div class="tc-meters">
+        <div class="meter-row"><span class="meter-label">Helix fit</span><div class="meter-track"><div class="meter-fill" style="--w:90%;background:var(--purple)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">Easy</span><div class="meter-track"><div class="meter-fill" style="--w:25%;background:var(--red)"></div></div></div>
+        <div class="meter-row"><span class="meter-label">VC story</span><div class="meter-track"><div class="meter-fill" style="--w:95%;background:var(--green)"></div></div></div>
+      </div>
+      <div class="tc-verdict" style="background:var(--red-bg);color:var(--red)">Theory foundation</div>
+    </div>
+
+  </div>
+
+  <!-- Detail panels -->
+  <div id="d-memrl" class="detail"><h4>MemRL — Why it fits Helix perfectly</h4><p>Gene Map IS episodic memory. Q-value IS utility scoring. We already do: high-Q genes retrieved first, low-Q genes naturally forgotten (natural selection). The MemRL paper validates our architecture — we implemented it independently before the paper was published.</p><h4>Limitation</h4><p>Learning ceiling = LLM's reasoning ability. Memory gets better, but the "brain" (LLM) stays the same. Solved by combining with Self-Play and SDPO later.</p></div>
+  <div id="d-evolver" class="detail"><h4>EvolveR — Knowledge distillation, not model distillation</h4><p>Current Gene Map: <code>nonce error on Tempo → refresh_nonce (Q=0.92)</code>. After EvolveR: <code>state desync pattern → refresh from authoritative source (abstract principle)</code>. The abstract principle transfers better to new platforms than concrete examples.</p><h4>Implementation</h4><p>Offline phase: LLM summarizes clusters of repair records → extracts patterns → stores as "strategic principles" in Gene Map. Online phase: when new error arrives, match against principles first, concrete genes second. 2-3 weeks of work.</p></div>
+  <div id="d-selfplay" class="detail"><h4>Self-Play SWE-RL — The AlphaGo moment</h4><p>Three internal agents play against each other:</p><ul><li><strong>Challenger:</strong> generates increasingly hard payment failures using error taxonomy + mutation</li><li><strong>Repair:</strong> PCEC attempts to fix (the agent being trained)</li><li><strong>Verifier:</strong> validates repair correctness against expected state</li></ul><p>Key insight from paper: "no need for human-labeled issues or tests." Only needs a sandbox. We can build a payment failure simulator using our 31 existing scenarios as seeds, then mutate/combine them to create harder ones.</p><h4>Why it can surpass GPT-4</h4><p>GPT-4 has never seen most of these payment failures. Self-play generates failures GPT-4 never encountered. The repair agent learns from these → becomes better than GPT-4 at payment repair. This is the AlphaGo Zero effect.</p></div>
+  <div id="d-sdpo" class="detail"><h4>SDPO — Self-teaching without a teacher</h4><p>Traditional distillation: <code>GPT-4 (teacher) → train student</code>. SDPO: <code>model sees own mistakes + Gene Map feedback → teaches itself</code>. The "self-teacher" is the same model conditioned on feedback — it can identify what went wrong in hindsight.</p><h4>Why post-funding</h4><p>Needs GPU compute for training. Needs 100K+ Gene Map records for good feedback. Both require scale we don't have yet. But the architecture (Gene Map as rich feedback) is already in place.</p></div>
+  <div id="d-distill" class="detail"><h4>Classic Distillation — Why we defer it</h4><p>Pros: conceptually simple, VC understands "our DeepSeek." Cons:</p><ul><li>Needs GPU cluster ($10K+/month)</li><li>Needs ML engineer (hiring)</li><li>Student ceiling = teacher level (can't surpass GPT-4)</li><li>Model goes stale (GPT-4 → GPT-5 → re-distill)</li><li>6+ months to production</li></ul><p>Self-Play + EvolveR achieves similar goals without any of these costs. We distill knowledge into Gene Map, not parameters into a model.</p></div>
+  <div id="d-gvu" class="detail"><h4>GVU — The mathematical guarantee</h4><p>The paper proves that ANY self-improving system can be decomposed into Generator→Verifier→Updater. PCEC maps directly:</p><ul><li>Generator = Construct (generates repair candidates)</li><li>Verifier = Evaluate + Verify (scores and validates)</li><li>Updater = Gene Map Q-value update</li></ul><p>The "Variance Inequality" theorem: κ > 0 when generation+verification noise < signal strength. In our case: when Gene Map has enough data and Perceive is accurate enough, improvement is mathematically guaranteed.</p><p>We cite this as theoretical validation. We don't need to implement anything new — PCEC already IS a GVU operator.</p></div>
+</section>
+
+<!-- Core trade-off: Distill vs No-Distill -->
+<section class="section" id="tradeoff">
+  <div class="s-title"><span class="s-dot" style="background:var(--amber)"></span>The core trade-off</div>
+  <div class="s-sub">Do we train our own model, or evolve without training?</div>
+
+  <div class="vs-row">
+    <div class="vs-col" style="border-color:var(--teal-border)">
+      <h4 style="color:var(--teal)">Distillation path</h4>
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">Train a dedicated model from Gene Map data</p>
+      <ul>
+        <li><span style="color:var(--green)">✓</span> Zero external LLM dependency</li>
+        <li><span style="color:var(--green)">✓</span> Cost → $0 per repair</li>
+        <li><span style="color:var(--green)">✓</span> VC loves "our own model"</li>
+        <li><span style="color:var(--red)">✗</span> Needs GPU ($10K+/mo)</li>
+        <li><span style="color:var(--red)">✗</span> Needs ML engineer</li>
+        <li><span style="color:var(--red)">✗</span> Ceiling = teacher model</li>
+        <li><span style="color:var(--red)">✗</span> 6+ months to production</li>
+      </ul>
+    </div>
+    <div class="vs-divider">vs</div>
+    <div class="vs-col" style="border-color:var(--amber-border)">
+      <h4 style="color:var(--amber)">Memory evolution path ⭐</h4>
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">Evolve Gene Map knowledge without model training</p>
+      <ul>
+        <li><span style="color:var(--green)">✓</span> No GPU needed</li>
+        <li><span style="color:var(--green)">✓</span> No ML team needed</li>
+        <li><span style="color:var(--green)">✓</span> 3 months to results</li>
+        <li><span style="color:var(--green)">✓</span> Can surpass GPT-4 (self-play)</li>
+        <li><span style="color:var(--green)">✓</span> LLM calls approach 0 naturally</li>
+        <li><span style="color:var(--amber)">△</span> Still uses LLM for novel errors</li>
+        <li><span style="color:var(--amber)">△</span> Less "sexy" than own model</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="quote" style="border-color:var(--amber)">
+    <p>"We don't distill models. We distill knowledge. Gene Map remembers experience (MemRL), abstracts it into principles (EvolveR), generates new knowledge through self-play (SWE-RL), and proves convergence mathematically (GVU). No GPU needed."</p>
+    <div class="attr">— Our answer to "why not just fine-tune?"</div>
+  </div>
+
+  <div class="fb-bar">
+    <span class="fb-sym" style="color:var(--amber)">→</span>
+    <span>Decision: <strong style="color:var(--amber)">Memory evolution now. Distillation after funding.</strong> Best of both worlds, sequenced by resources.</span>
+  </div>
+</section>
+
+<!-- Recommended Architecture -->
+<section class="section" id="architecture">
+  <div class="s-title"><span class="s-dot pulse" style="background:var(--green)"></span>Recommended architecture</div>
+  <div class="s-sub">3 layers now (no GPU). 2 layers post-funding (with GPU). Theory foundation throughout.</div>
+
+  <div class="stack">
+    <div class="stack-layer" style="border-color:var(--teal-border)" onclick="toggle('ds0')">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal)"></div>
+      <div class="sl-head">
+        <div class="sl-name" style="color:var(--teal)">Layer 0 — Gene Dream cycle</div>
+        <div class="sl-badge" style="background:var(--amber-bg);color:var(--amber)">next sprint</div>
+      </div>
+      <div class="sl-desc">Background memory consolidation. Cluster → prune → consolidate → enrich → reindex. REM sleep for Gene Map.</div>
+      <div class="sl-paper">Inspired by Claude Code Auto Dream + <a href="https://arxiv.org/abs/2510.16079">EvolveR (2025)</a></div>
+    </div>
+    <div class="stack-layer" style="border-color:var(--purple-border)" onclick="toggle('ds1')">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--purple)"></div>
+      <div class="sl-head">
+        <div class="sl-name" style="color:var(--purple)">Layer 1 — Memory-driven learning</div>
+        <div class="sl-badge" style="background:var(--green-bg);color:var(--green)">✓ v1.5 shipped</div>
+      </div>
+      <div class="sl-desc">Gene Map + Q-value utility + cross-platform transfer + predictive graph</div>
+      <div class="sl-paper">Based on <a href="https://arxiv.org/abs/2601.03192">MemRL (2026)</a></div>
+    </div>
+    <div class="stack-layer" style="border-color:var(--amber-border)" onclick="toggle('ds2')">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--amber)"></div>
+      <div class="sl-head">
+        <div class="sl-name" style="color:var(--amber)">Layer 2 — Experience distillation</div>
+        <div class="sl-badge" style="background:var(--amber-bg);color:var(--amber)">Q2 2026</div>
+      </div>
+      <div class="sl-desc">Raw repair records → abstract strategic principles → cross-domain transfer</div>
+      <div class="sl-paper">Based on <a href="https://arxiv.org/abs/2510.16079">EvolveR (2025)</a></div>
+    </div>
+    <div class="stack-layer" style="border-color:var(--blue-border)" onclick="toggle('ds3')">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)"></div>
+      <div class="sl-head">
+        <div class="sl-name" style="color:var(--blue)">Layer 3 — Self-play evolution</div>
+        <div class="sl-badge" style="background:var(--blue-bg);color:var(--blue)">Q3 2026</div>
+      </div>
+      <div class="sl-desc">Challenger ↔ Repair ↔ Verifier. 24/7 autonomous evolution. No users needed.</div>
+      <div class="sl-paper">Based on <a href="https://arxiv.org/abs/2512.18552">Self-Play SWE-RL (2025)</a></div>
+    </div>
+    <div class="stack-layer" style="border-color:var(--green-border);opacity:.7" onclick="toggle('ds4')">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green)"></div>
+      <div class="sl-head">
+        <div class="sl-name" style="color:var(--green)">Layer 4 — Self-distillation (post-funding)</div>
+        <div class="sl-badge" style="background:var(--surface);color:var(--text-dim)">Q4 2026</div>
+      </div>
+      <div class="sl-desc">SDPO: model teaches itself from Gene Map feedback. Zero external dependency.</div>
+      <div class="sl-paper">Based on <a href="https://arxiv.org/abs/2601.20802">SDPO (2026)</a></div>
+    </div>
+    <div class="stack-layer" style="border-color:var(--red-border);opacity:.6" onclick="toggle('ds5')">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red)"></div>
+      <div class="sl-head">
+        <div class="sl-name" style="color:var(--red)">Layer 5 — Full recursive loop</div>
+        <div class="sl-badge" style="background:var(--surface);color:var(--text-dim)">2027</div>
+      </div>
+      <div class="sl-desc">Better model → better self-play → better data → better model → κ > 0 recursive</div>
+      <div class="sl-paper">Validated by <a href="https://arxiv.org/abs/2512.02731">GVU Theory (2025)</a></div>
+    </div>
+  </div>
+
+  <div id="ds0" class="detail">Gene Dream runs as a background daemon (or manually via <code>npx helix dream</code>). Triggers when Gene Map exceeds 1000 records AND 24h since last dream AND 50+ new repairs. Uses file lock to prevent concurrent runs. Read-only on agent code, write access only to Gene Map. Five stages: cluster similar genes → prune Q&lt;0.2 stale genes → consolidate clusters into meta-genes (abstract principles) → enrich with conditional context → reindex predictive graph. The consolidation step is what makes this more than memory management — it's knowledge creation.</div>
+  <div id="ds1" class="detail">Already live: Gene Map stores repair capsules with Bayesian Q ± σ. Adaptive α (new genes learn fast). Context-aware lookup (adjusts by gas price, time, chain). Cross-platform: Tempo Gene protects Coinbase agents. Predictive graph preloads next failure.</div>
+  <div id="ds2" class="detail">Offline phase: LLM clusters similar repair records → extracts abstract patterns → stores as strategic principles. Example: 50 nonce-related repairs across 3 platforms → one abstract principle: "when nonce state diverges from chain source of truth, re-derive nonce from chain head." This principle applies to any future blockchain nonce mechanism.</div>
+  <div id="ds3" class="detail">Build a payment failure simulator using 31 existing scenarios as seeds. Challenger mutates and combines them: "what if nonce error + gas spike happen simultaneously?" → compound scenarios humans never designed. Repair agent learns to handle these. After 10K self-play rounds, the system has seen more failure combinations than any production deployment.</div>
+  <div id="ds4" class="detail">With 100K+ Gene Map records (from real users + self-play), SDPO trains a dedicated Helix model. The model reads its own repair attempts + Gene Map feedback → learns where it went wrong → improves. No external teacher needed. Just Gene Map as "rich feedback" per the SDPO paper.</div>
+  <div id="ds5" class="detail">The trained Helix model generates higher-quality self-play data → better data trains a better model → better model generates even better data. This is the recursive loop. GVU theory proves κ > 0 when Gene Map is large enough and Perceive is accurate enough. Both conditions will be met by 2027.</div>
+</section>
+
+<!-- The recursive loop visualization -->
+<section class="section">
+  <div class="s-title"><span class="s-dot pulse" style="background:var(--red)"></span>The recursive loop</div>
+  <div class="s-sub">Each cycle produces a system strictly better than the last. Not a promise — a theorem.</div>
+
+  <div class="loop-flow">
+    <div class="loop-step">
+      <div class="loop-icon" style="background:var(--purple-bg)"><div style="position:absolute;top:-2px;left:0;right:0;height:2px;background:var(--purple);animation:scanDown 3s linear infinite"></div>🧠</div>
+      <div class="loop-body">
+        <div class="loop-name" style="color:var(--purple)">① Remember — MemRL</div>
+        <div class="loop-desc">Gene Map accumulates repair experience. Q-value tracks what works. Memory is the substrate of intelligence.</div>
+        <div class="loop-paper"><a href="https://arxiv.org/abs/2601.03192">arXiv:2601.03192</a> · shipped v1.5</div>
+      </div>
+    </div>
+    <div class="loop-step">
+      <div class="loop-icon" style="background:var(--amber-bg)"><div style="position:absolute;top:-2px;left:0;right:0;height:2px;background:var(--amber);animation:scanDown 3s linear infinite .6s"></div>⚗️</div>
+      <div class="loop-body">
+        <div class="loop-name" style="color:var(--amber)">② Abstract — EvolveR via Gene Dream</div>
+        <div class="loop-desc">Raw memories distilled into strategic principles. The Gene Dream cycle (inspired by REM sleep + Claude Code Auto Dream) runs offline: cluster → prune → consolidate → enrich → reindex. Concrete → abstract. Instance → pattern.</div>
+        <div class="loop-paper"><a href="https://arxiv.org/abs/2510.16079">arXiv:2510.16079</a> · Q2 2026</div>
+      </div>
+    </div>
+    <div class="loop-step">
+      <div class="loop-icon" style="background:var(--blue-bg)"><div style="position:absolute;top:-2px;left:0;right:0;height:2px;background:var(--blue);animation:scanDown 3s linear infinite 1.2s"></div>⚔️</div>
+      <div class="loop-body">
+        <div class="loop-name" style="color:var(--blue)">③ Challenge — Self-Play</div>
+        <div class="loop-desc">System generates harder problems than reality provides. Solves them. Learns. Surpasses teacher models. The AlphaGo moment.</div>
+        <div class="loop-paper"><a href="https://arxiv.org/abs/2512.18552">arXiv:2512.18552</a> · Q3 2026</div>
+      </div>
+    </div>
+    <div class="loop-step">
+      <div class="loop-icon" style="background:var(--green-bg)"><div style="position:absolute;top:-2px;left:0;right:0;height:2px;background:var(--green);animation:scanDown 3s linear infinite 1.8s"></div>🔄</div>
+      <div class="loop-body">
+        <div class="loop-name" style="color:var(--green)">④ Internalize — SDPO</div>
+        <div class="loop-desc">All new knowledge distilled back into a self-taught model. No external teacher. Gene Map feedback is the curriculum. Cost → $0.</div>
+        <div class="loop-paper"><a href="https://arxiv.org/abs/2601.20802">arXiv:2601.20802</a> · Q4 2026</div>
+      </div>
+    </div>
+    <div class="loop-step">
+      <div class="loop-icon" style="background:var(--red-bg)"><div style="position:absolute;top:-2px;left:0;right:0;height:2px;background:var(--red);animation:scanDown 3s linear infinite 2.4s"></div>∞</div>
+      <div class="loop-body">
+        <div class="loop-name" style="color:var(--red)">⑤ Recurse — GVU Loop</div>
+        <div class="loop-desc">Better model → better self-play → better data → better abstraction → better model. Each cycle: κ > 0. Improvement accelerates.</div>
+        <div class="loop-paper"><a href="https://arxiv.org/abs/2512.02731">arXiv:2512.02731</a> · 2027</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fb-bar">
+    <span class="fb-sym" style="color:var(--red)">↻</span>
+    <span>Step ⑤ feeds back to step ①. Each cycle the system is <strong style="color:var(--red)">strictly better</strong> than the last. GVU proves: when signal > noise, this convergence is <strong style="color:var(--red)">mathematically guaranteed</strong>.</span>
+  </div>
+</section>
+
+<!-- Timeline -->
+<section class="section" id="timeline">
+  <div class="s-title"><span class="s-dot" style="background:var(--green)"></span>Implementation timeline</div>
+  <div class="timeline">
+    <div class="tl-item" style="border-color:var(--purple-border)">
+      <div class="tl-bar" style="--w:100%;background:var(--purple)"></div>
+      <div class="tl-time">v1.5 ✓</div>
+      <div class="tl-name" style="color:var(--purple)">MemRL</div>
+      <div class="tl-cap">Gene Map + Q-value</div>
+    </div>
+    <div class="tl-item" style="border-color:var(--amber-border)">
+      <div class="tl-bar" style="--w:40%;background:var(--amber)"></div>
+      <div class="tl-time">Q2 2026</div>
+      <div class="tl-name" style="color:var(--amber)">EvolveR</div>
+      <div class="tl-cap">Abstract principles</div>
+    </div>
+    <div class="tl-item" style="border-color:var(--blue-border)">
+      <div class="tl-bar" style="--w:15%;background:var(--blue)"></div>
+      <div class="tl-time">Q3 2026</div>
+      <div class="tl-name" style="color:var(--blue)">Self-Play</div>
+      <div class="tl-cap">24/7 auto-evolve</div>
+    </div>
+    <div class="tl-item" style="border-color:var(--green-border)">
+      <div class="tl-bar" style="--w:0%;background:var(--green)"></div>
+      <div class="tl-time">Q4 2026</div>
+      <div class="tl-name" style="color:var(--green)">SDPO</div>
+      <div class="tl-cap">Self-distillation</div>
+    </div>
+    <div class="tl-item" style="border-color:var(--red-border)">
+      <div class="tl-bar" style="--w:0%;background:var(--red)"></div>
+      <div class="tl-time">2027</div>
+      <div class="tl-name" style="color:var(--red)">Full loop</div>
+      <div class="tl-cap">κ > 0 recursive</div>
+    </div>
+  </div>
+</section>
+
+<!-- Gene Dream -->
+<section class="section" id="gene-dream">
+  <div class="s-title"><span class="s-dot pulse" style="background:var(--teal)"></span>Gene Dream cycle</div>
+  <div class="s-sub">Inspired by human REM sleep and Claude Code's Auto Dream — memory consolidation that creates new knowledge.</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">
+    <div style="background:var(--surface);border-radius:12px;padding:16px 18px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--teal);margin-bottom:8px">Awake phase (real-time)</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.6">Gene Map accumulates repair records as they happen. Fast, raw, unprocessed. Every repair = one new gene. Q-values update incrementally. No consolidation.</div>
+      <div style="font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-top:8px;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px">Trigger: every repair() call</div>
+    </div>
+    <div style="background:var(--surface);border-radius:12px;padding:16px 18px;border:1px solid var(--teal-border);position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(45,212,191,.04),transparent 70%);pointer-events:none"></div>
+      <div style="font-size:13px;font-weight:600;color:var(--teal);margin-bottom:8px;position:relative">Dream phase (background)</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.6;position:relative">Gene Dream runs offline. Clusters similar genes, prunes stale knowledge, consolidates into abstract principles, enriches context, rebuilds indices. Wakes up smarter.</div>
+      <div style="font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-top:8px;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;position:relative">Trigger: 1000+ genes && 24h+ && 50+ new repairs</div>
+    </div>
+  </div>
+
+  <div style="background:var(--surface);border-radius:12px;padding:16px 18px;margin:12px 0;border:1px solid var(--border)">
+    <div style="font-size:13px;font-weight:600;color:var(--text-bright);margin-bottom:12px">Five dream stages</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--teal-bg);border:1px solid var(--teal-border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">①</div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--teal)">Cluster</div><div style="font-size:11px;color:var(--text-dim)">Group similar genes by error embedding similarity. "nonce mismatch on Tempo" + "AA25 nonce on Coinbase" + "privy nonce desync" → cluster: <code style="font-family:var(--mono);font-size:10px;background:rgba(255,255,255,0.05);padding:1px 5px;border-radius:3px;color:var(--text)">nonce state divergence</code></div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--red-bg);border:1px solid var(--red-border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">②</div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--red)">Prune</div><div style="font-size:11px;color:var(--text-dim)">Remove genes with Q &lt; 0.2 and age &gt; 7 days. These strategies have been tried and failed consistently. Dead branches cut.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--amber-bg);border:1px solid var(--amber-border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">③</div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--amber)">Consolidate</div><div style="font-size:11px;color:var(--text-dim)">Merge clusters into abstract principles via LLM. 3 concrete nonce genes → 1 meta-gene: <em>"When nonce state diverges from chain source of truth, re-derive from chain head. Works across all EVM chains."</em> This is knowledge creation, not just cleanup.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--blue-bg);border:1px solid var(--blue-border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">④</div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--blue)">Enrich</div><div style="font-size:11px;color:var(--text-dim)">Add conditional context. "refresh_nonce works" becomes "refresh_nonce works when gas &lt; 50 gwei, fails when &gt; 200 gwei (use speed_up instead)." Vague → precise.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--purple-bg);border:1px solid var(--purple-border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">⑤</div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--purple)">Reindex</div><div style="font-size:11px;color:var(--text-dim)">Rebuild Predictive Failure Graph, update Error Embedding signatures, refresh Strategy Chain detection rules. The whole system benefits from cleaner knowledge.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0">
+    <div style="background:var(--surface);border-radius:10px;padding:14px 16px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--text-bright);margin-bottom:6px">Claude Code Auto Dream</div>
+      <div style="font-size:11px;color:var(--text-dim);line-height:1.5">Reviews past transcripts. Prunes stale memories. Consolidates contradictions. Organizes into indexed files. Memory management.</div>
+      <div style="font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-top:6px">→ Better retrieval</div>
+    </div>
+    <div style="background:var(--surface);border-radius:10px;padding:14px 16px;border:1px solid var(--teal-border)">
+      <div style="font-size:12px;font-weight:600;color:var(--teal);margin-bottom:6px">Helix Gene Dream</div>
+      <div style="font-size:11px;color:var(--text-dim);line-height:1.5">Everything Auto Dream does, plus: abstracts concrete repairs into strategic principles. Creates meta-genes. Generates new knowledge from existing knowledge. Knowledge creation.</div>
+      <div style="font-size:10px;font-family:var(--mono);color:var(--teal);margin-top:6px">→ Better retrieval + new knowledge</div>
+    </div>
+  </div>
+
+  <div class="fb-bar" style="border-color:var(--teal-border)">
+    <span class="fb-sym" style="color:var(--teal)">🌙</span>
+    <span>Gene Dream is the bridge between MemRL (raw memory) and EvolveR (abstract principles). It's how raw experience becomes wisdom. <strong style="color:var(--teal)">Same biology, applied to agents.</strong></span>
+  </div>
+</section>
+
+<!-- Investor framing -->
+<section class="section">
+  <div class="s-title"><span class="s-dot" style="background:var(--amber)"></span>For investors</div>
+
+  <div class="quote" style="border-color:var(--blue)">
+    <p>"DeepSeek distills models. We distill knowledge. Gene Map remembers (MemRL) → abstracts (EvolveR) → self-challenges (Self-Play SWE-RL) → self-teaches (SDPO) → recurses (GVU). No GPU. No ML team. The intelligence lives in the data, not the parameters."</p>
+    <div class="attr">— Why we chose this path</div>
+  </div>
+
+  <div class="quote" style="border-color:var(--purple)">
+    <p>"AlphaGo didn't need human games to surpass humans. Helix doesn't need real failures to surpass GPT-4 at repair. Self-play generates failure scenarios no human designed. The repair agent evolves in simulation, deploys in production. Four arXiv papers validate every step."</p>
+    <div class="attr">— The AlphaGo analogy</div>
+  </div>
+
+  <div class="quote" style="border-color:var(--amber)">
+    <p>"Competitors copy code. They can't copy 10K rounds of self-play. They can't copy 100K Gene Map records. They can't copy abstract strategic principles distilled over 6 months. Every day Helix runs, the moat widens. Not because we write more code — because the system evolves itself."</p>
+    <div class="attr">— The compounding moat</div>
+  </div>
+</section>
+
+</div>
+
+<footer class="footer">
+  <a href="vision.html">← Technology Vision</a>
+  <span style="font-family:var(--mono)">npm install @helix-agent/core</span>
+  <a href="https://github.com/adrianhihi/helix" target="_blank">GitHub</a>
+  <span>5 papers · 5 methods · 1 loop</span>
+  <span>© 2026 LaoMOS</span>
+</footer>
+
+<script>
+function toggle(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const wasOpen=el.classList.contains('open');
+  document.querySelectorAll('.detail').forEach(p=>p.classList.remove('open'));
+  if(!wasOpen)el.classList.add('open');
+}
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.style.animation='fadeUp .6s both';obs.unobserve(e.target)}})
+},{threshold:0.1});
+document.querySelectorAll('.section').forEach(s=>obs.observe(s));
+</script>
+
+</body>
+</html>

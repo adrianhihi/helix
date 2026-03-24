@@ -200,6 +200,76 @@ nav .cta:hover{background:rgba(240,160,48,0.15);border-color:var(--amber)}
 .footer a{color:var(--amber);text-decoration:none}
 .footer a:hover{text-decoration:underline}
 
+/* Self-Evolution Engine */
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes spinR{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+@keyframes colorCycle{0%{color:var(--amber)}25%{color:var(--blue)}50%{color:var(--green)}75%{color:var(--purple)}100%{color:var(--amber)}}
+@keyframes orbit1{from{transform:rotate(0deg) translateX(110px) rotate(0deg)}to{transform:rotate(360deg) translateX(110px) rotate(-360deg)}}
+@keyframes orbit2{from{transform:rotate(120deg) translateX(90px) rotate(-120deg)}to{transform:rotate(480deg) translateX(90px) rotate(-480deg)}}
+@keyframes orbit3{from{transform:rotate(240deg) translateX(130px) rotate(-240deg)}to{transform:rotate(600deg) translateX(130px) rotate(-600deg)}}
+@keyframes orbit4{from{transform:rotate(60deg) translateX(70px) rotate(-60deg)}to{transform:rotate(420deg) translateX(70px) rotate(-420deg)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@keyframes scanDown{0%{top:-2px;opacity:0}10%{opacity:.8}90%{opacity:.8}100%{top:calc(100% - 2px);opacity:0}}
+
+.reactor{position:relative;width:260px;height:260px;margin:1.5rem auto}
+.reactor-ring{position:absolute;inset:0;border-radius:50%;border:0.5px solid var(--border)}
+.reactor-ring.r1{inset:0;animation:spin 20s linear infinite;border-style:dashed}
+.reactor-ring.r2{inset:18px;animation:spinR 14s linear infinite;border-color:rgba(167,139,250,.2)}
+.reactor-ring.r3{inset:44px;animation:spin 9s linear infinite;border-color:rgba(240,160,48,.2)}
+.reactor-core{position:absolute;inset:65px;border-radius:50%;background:radial-gradient(circle,rgba(240,160,48,.1),transparent);display:flex;align-items:center;justify-content:center;animation:breathe 4s infinite}
+.reactor-core-text{font-size:11px;font-family:var(--mono);color:var(--text-dim);text-align:center;line-height:1.4}
+.reactor-core-text strong{display:block;font-size:18px;font-weight:700;animation:colorCycle 8s infinite}
+.orb{position:absolute;border-radius:50%;top:50%;left:50%}
+.orb.o1{width:10px;height:10px;background:var(--amber);margin:-5px;animation:orbit1 8s linear infinite;box-shadow:0 0 14px rgba(240,160,48,.5)}
+.orb.o2{width:8px;height:8px;background:var(--blue);margin:-4px;animation:orbit2 10s linear infinite;box-shadow:0 0 10px rgba(96,165,250,.5)}
+.orb.o3{width:6px;height:6px;background:var(--green);margin:-3px;animation:orbit3 12s linear infinite;box-shadow:0 0 8px rgba(74,222,128,.5)}
+.orb.o4{width:7px;height:7px;background:var(--purple);margin:-3.5px;animation:orbit4 14s linear infinite;box-shadow:0 0 10px rgba(167,139,250,.5)}
+
+.kappa-box{background:var(--surface);border-radius:12px;padding:14px 20px;margin:1rem 0;border:1px solid var(--border);position:relative;overflow:hidden}
+.kappa-box::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(167,139,250,.03),rgba(240,160,48,.03));pointer-events:none}
+.kappa-formula{font-family:var(--mono);font-size:14px;color:var(--text-bright);text-align:center;padding:6px 0}
+.kappa-explain{font-size:11px;color:var(--text-dim);text-align:center;margin-top:2px}
+
+.evo-loop{position:relative;margin-top:12px}
+.evo-loop::before{content:'';position:absolute;left:21px;top:24px;bottom:24px;width:1px;background:var(--border)}
+.evo-step{display:flex;gap:14px;padding:10px 0;position:relative;cursor:pointer;transition:transform .15s}
+.evo-step:hover{transform:translateX(4px)}
+.evo-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;z-index:1;position:relative;overflow:hidden;border:1px solid var(--border)}
+.evo-icon::after{content:'';position:absolute;top:-2px;left:0;right:0;height:2px;border-radius:1px;animation:scanDown 3s linear infinite;opacity:0}
+.evo-step:nth-child(1) .evo-icon::after{background:var(--purple);animation-delay:0s}
+.evo-step:nth-child(2) .evo-icon::after{background:var(--amber);animation-delay:.6s}
+.evo-step:nth-child(3) .evo-icon::after{background:var(--blue);animation-delay:1.2s}
+.evo-step:nth-child(4) .evo-icon::after{background:var(--green);animation-delay:1.8s}
+.evo-step:nth-child(5) .evo-icon::after{background:var(--red);animation-delay:2.4s}
+.evo-body{flex:1}
+.evo-step-name{font-size:13px;font-weight:600}
+.evo-step-desc{font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:2px}
+.evo-paper{font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-top:4px;padding:3px 8px;background:rgba(255,255,255,0.03);border-radius:20px;display:inline-block;border:1px solid var(--border)}
+.evo-paper a{color:var(--blue);text-decoration:none}
+
+.evo-fb{display:flex;align-items:center;gap:10px;margin:10px 0 0 56px;padding:10px 14px;border-radius:8px;border:1px dashed var(--border);font-size:11px;color:var(--text-dim);animation:glow 4s infinite}
+.evo-fb-sym{font-family:var(--mono);color:var(--amber);animation:pulse 2s infinite;font-size:14px}
+
+.method-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:1rem 0}
+.method-col{text-align:center;padding:10px 4px;border-radius:8px;border:1px solid var(--border);background:var(--surface);transition:all .2s;cursor:pointer}
+.method-col:hover{border-color:var(--border-hover);transform:translateY(-2px)}
+.method-col.rec{border-color:var(--amber-border);background:rgba(240,160,48,.03)}
+.method-name{font-size:10px;font-weight:600;margin-bottom:3px;color:var(--text-bright)}
+.method-val{font-size:9px;font-family:var(--mono);color:var(--text-dim);line-height:1.4}
+.method-star{font-size:10px;margin-top:4px;color:var(--amber)}
+
+.impl-tl{display:flex;gap:3px;margin:1rem 0}
+.impl-phase{flex:1;padding:10px 6px;border-radius:8px;text-align:center;border:1px solid var(--border);transition:all .2s;cursor:pointer;position:relative;overflow:hidden}
+.impl-phase:hover{transform:translateY(-2px);border-color:var(--border-hover)}
+.impl-bar{position:absolute;bottom:0;left:0;height:3px;border-radius:0 0 4px 4px}
+.impl-time{font-size:9px;font-family:var(--mono);color:var(--text-dim)}
+.impl-name{font-size:11px;font-weight:600;margin:2px 0;color:var(--text-bright)}
+.impl-cap{font-size:9px;color:var(--text-dim)}
+
+.vc-quote{background:var(--surface);border-radius:12px;padding:16px 20px;margin:12px 0;border-left:3px solid;position:relative}
+.vc-quote p{font-size:13px;line-height:1.7;color:var(--text);font-style:italic}
+.vc-quote .attr{font-size:10px;color:var(--text-dim);margin-top:8px;font-style:normal;font-family:var(--mono)}
+
 @media(max-width:640px){
   .stats{grid-template-columns:repeat(2,1fr)}
   .principles{grid-template-columns:1fr}
@@ -208,6 +278,9 @@ nav .cta:hover{background:rgba(240,160,48,0.15);border-color:var(--amber)}
   .moat-grid{grid-template-columns:1fr}
   .evo{flex-wrap:wrap}
   .evo-p{min-width:calc(50% - 4px)}
+  .method-grid{grid-template-columns:repeat(3,1fr)}
+  .impl-tl{flex-wrap:wrap}
+  .impl-phase{min-width:calc(50% - 4px)}
 }
 </style>
 </head>
@@ -221,10 +294,11 @@ nav .cta:hover{background:rgba(240,160,48,0.15);border-color:var(--amber)}
     <a href="#moats">Moats</a>
     <a href="#roadmap">Roadmap</a>
     <a href="#evolution">Evolution</a>
+    <a href="#self-evolution">Self-Evolution</a>
+    <a href="/research">Research</a>
     <a href="/lab">Lab</a>
     <a href="/docs">Docs</a>
     <a href="/benchmark">Benchmark</a>
-    <a href="/insights">Insights</a>
     <a class="cta" href="https://github.com/adrianhihi/helix" target="_blank">GitHub →</a>
   </div>
 </nav>
@@ -464,14 +538,249 @@ nav .cta:hover{background:rgba(240,160,48,0.15);border-color:var(--amber)}
   </div>
 </section>
 
+<!-- Self-Evolution Engine -->
+<section class="section" id="self-evolution">
+  <div class="s-header" style="text-align:center">
+    <div class="s-title" style="justify-content:center"><span class="s-dot pulse" style="background:var(--purple)"></span>Self-Evolution Engine</div>
+    <div class="s-sub" style="margin:4px auto;max-width:500px">Helix doesn't just heal agents — it heals itself. Recursive self-improvement backed by 5 papers, 5 methods, 1 closed loop.</div>
+  </div>
+
+  <!-- Reactor -->
+  <div class="reactor">
+    <div class="reactor-ring r1"></div>
+    <div class="reactor-ring r2"></div>
+    <div class="reactor-ring r3"></div>
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="orb o3"></div>
+    <div class="orb o4"></div>
+    <div class="reactor-core">
+      <div class="reactor-core-text">
+        <strong>κ > 0</strong>
+        self-improvement<br/>coefficient
+      </div>
+    </div>
+  </div>
+
+  <!-- GVU Theory -->
+  <div class="kappa-box">
+    <div class="kappa-formula">G(generate) → V(verify) → U(update) → κ > 0 → ∞ improvement</div>
+    <div class="kappa-explain">GVU Operator (arXiv:2512.02731) — mathematically proven: if signal > noise, self-improvement is guaranteed. PCEC is a GVU instance.</div>
+  </div>
+
+  <!-- Five-step loop -->
+  <div style="margin-top:20px">
+    <div class="s-title" style="font-size:16px"><span class="s-dot pulse" style="background:var(--purple)"></span>Recursive evolution loop</div>
+    <div class="s-sub">Five methods, four papers, one closed loop. Each cycle produces a strictly stronger system.</div>
+  </div>
+
+  <div class="evo-loop">
+    <div class="evo-step" onclick="toggle('de1')">
+      <div class="evo-icon" style="background:rgba(167,139,250,.06)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      </div>
+      <div class="evo-body">
+        <div class="evo-step-name" style="color:var(--purple)">① Memory-driven learning</div>
+        <div class="evo-step-desc">Gene Map as episodic memory. Q-value tracks utility. High-utility memories retrieved more, low-utility forgotten. The system remembers what works.</div>
+        <div class="evo-paper"><a href="https://arxiv.org/abs/2601.03192" target="_blank">MemRL (2026)</a> — already implemented in v1.5</div>
+      </div>
+    </div>
+    <div id="de1" class="detail">Gene Map = MemRL's episodic memory. Each Gene Capsule stores: error pattern + strategy + Q-value + context + platform. Q-value acts as utility score — high-Q genes are retrieved first, low-Q genes decay via natural selection. This is exactly the mechanism described in the MemRL paper, applied to error repair.</div>
+
+    <div class="evo-step" onclick="toggle('de2')">
+      <div class="evo-icon" style="background:rgba(240,160,48,.06)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M5 19h14"/></svg>
+      </div>
+      <div class="evo-body">
+        <div class="evo-step-name" style="color:var(--amber)">② Experience distillation</div>
+        <div class="evo-step-desc">Raw repair records → abstract strategic principles. Not "nonce → refresh" but "state desync pattern → refresh from source of truth". Learns the pattern, not the instance.</div>
+        <div class="evo-paper"><a href="https://arxiv.org/abs/2510.16079" target="_blank">EvolveR (2025)</a> — offline self-distillation lifecycle</div>
+      </div>
+    </div>
+    <div id="de2" class="detail">EvolveR's three-phase lifecycle maps perfectly: Online (PCEC repairs in production) → Offline Self-Distillation (Gene Map records → abstract principles) → Policy Update (Q-values + strategy ranking). The key insight: distilled principles transfer across platforms. A "state desync" principle learned on Tempo applies to Coinbase without re-learning.</div>
+
+    <div class="evo-step" onclick="toggle('de3')">
+      <div class="evo-icon" style="background:rgba(96,165,250,.06)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5"><path d="M4 12h4l3-9 4 18 3-9h4"/></svg>
+      </div>
+      <div class="evo-body">
+        <div class="evo-step-name" style="color:var(--blue)">③ Self-play evolution</div>
+        <div class="evo-step-desc">Challenger generates increasingly hard failures. Repair agent attempts fix. Verifier validates. No real users needed — 24/7 autonomous evolution toward superintelligent repair.</div>
+        <div class="evo-paper"><a href="https://arxiv.org/abs/2512.18552" target="_blank">Self-Play SWE-RL (2025)</a> — "toward superintelligent software agents"</div>
+      </div>
+    </div>
+    <div id="de3" class="detail">The Self-Play SWE-RL paper shows a single agent trained to both inject and repair bugs of increasing complexity — no human-labeled data needed. For Helix: a Challenger agent generates novel payment failures (e.g. "what if gas spikes 10x mid-transaction and the nonce rotates?"), the PCEC Repair agent attempts to fix it, and a Verifier checks correctness. Each round, the Challenger generates harder scenarios. This is AlphaGo Zero for error repair.</div>
+
+    <div class="evo-step" onclick="toggle('de4')">
+      <div class="evo-icon" style="background:rgba(74,222,128,.06)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
+      </div>
+      <div class="evo-body">
+        <div class="evo-step-name" style="color:var(--green)">④ Self-distillation</div>
+        <div class="evo-step-desc">No external teacher needed. Model sees its own failures + rich feedback from Gene Map → teaches itself. Converts error feedback into dense learning signal. Cost → $0.</div>
+        <div class="evo-paper"><a href="https://arxiv.org/abs/2601.20802" target="_blank">SDPO (2026)</a> — RL via self-distillation, no reward model</div>
+      </div>
+    </div>
+    <div id="de4" class="detail">SDPO (Self-Distillation Policy Optimization) eliminates the need for GPT-4 as teacher. Gene Map's repair records provide "rich feedback" — not just success/fail, but error details, context, timing. The model conditioned on this feedback becomes its own teacher. This is how Helix's cost approaches zero: no external LLM calls, pure self-teaching from accumulated experience.</div>
+
+    <div class="evo-step" onclick="toggle('de5')">
+      <div class="evo-icon" style="background:rgba(248,113,113,.06)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10"/><path d="M22 2L12 12"/><path d="M16 2h6v6"/></svg>
+      </div>
+      <div class="evo-body">
+        <div class="evo-step-name" style="color:var(--red)">⑤ Recursive loop</div>
+        <div class="evo-step-desc">Better model → better self-play → better data → better distillation → better model. Each cycle surpasses the last. This is the recursive self-improvement condition: κ > 0.</div>
+        <div class="evo-paper"><a href="https://arxiv.org/abs/2512.02731" target="_blank">GVU Theory (2025)</a> — mathematical proof of self-improvement</div>
+      </div>
+    </div>
+    <div id="de5" class="detail">The GVU paper proves that any system with Generator (PCEC Construct), Verifier (PCEC Evaluate), and Updater (Gene Map) will continuously improve as long as the self-improvement coefficient κ > 0. The "Second Law of AGI Dynamics": entropy increases UNLESS signal > noise. Our Gene Map ensures signal accumulates faster than noise — each successful repair is a verified data point with ground truth.</div>
+  </div>
+
+  <!-- Feedback loop callout -->
+  <div class="evo-fb">
+    <span class="evo-fb-sym">↻</span>
+    <span>Step ⑤ output feeds back to step ① — each cycle the system is strictly better. <strong style="color:var(--amber)">Not a promise. A theorem (κ > 0).</strong></span>
+  </div>
+
+  <!-- Method comparison -->
+  <div style="margin-top:24px">
+    <div class="s-title" style="font-size:16px"><span class="s-dot" style="background:var(--blue)"></span>Method comparison</div>
+  </div>
+  <div class="method-grid">
+    <div class="method-col">
+      <div class="method-name">Distillation</div>
+      <div class="method-val">Teacher→Student<br/>DeepSeek style</div>
+      <div class="method-star">★★★★☆</div>
+    </div>
+    <div class="method-col rec">
+      <div class="method-name" style="color:var(--amber)">Self-Play ⭐</div>
+      <div class="method-val">Generate→Fix<br/>AlphaGo style</div>
+      <div class="method-star">★★★★★</div>
+    </div>
+    <div class="method-col">
+      <div class="method-name">EvolveR</div>
+      <div class="method-val">Experience→Principle<br/>Reflect + RL</div>
+      <div class="method-star">★★★★☆</div>
+    </div>
+    <div class="method-col">
+      <div class="method-name">SDPO</div>
+      <div class="method-val">Self-teach<br/>No reward model</div>
+      <div class="method-star">★★★★☆</div>
+    </div>
+    <div class="method-col">
+      <div class="method-name">GVU</div>
+      <div class="method-val">Math proof<br/>κ > 0 theorem</div>
+      <div class="method-star">★★★☆☆</div>
+    </div>
+  </div>
+  <div style="font-size:10px;color:var(--text-dim);text-align:center;margin-top:4px">Stars = fit for Helix. We combine all five — not pick one.</div>
+
+  <!-- Implementation timeline -->
+  <div style="margin-top:24px">
+    <div class="s-title" style="font-size:16px"><span class="s-dot" style="background:var(--green)"></span>Implementation timeline</div>
+  </div>
+  <div class="impl-tl">
+    <div class="impl-phase">
+      <div class="impl-bar" style="width:100%;background:var(--green)"></div>
+      <div class="impl-time">v1.5 ✓</div>
+      <div class="impl-name" style="color:var(--green)">MemRL</div>
+      <div class="impl-cap">Gene Map Q-value</div>
+    </div>
+    <div class="impl-phase">
+      <div class="impl-bar" style="width:50%;background:var(--amber)"></div>
+      <div class="impl-time">Q2 2026</div>
+      <div class="impl-name" style="color:var(--amber)">EvolveR</div>
+      <div class="impl-cap">Experience distill</div>
+    </div>
+    <div class="impl-phase">
+      <div class="impl-bar" style="width:15%;background:var(--blue)"></div>
+      <div class="impl-time">Q3 2026</div>
+      <div class="impl-name" style="color:var(--blue)">Self-Play</div>
+      <div class="impl-cap">24/7 auto-evolve</div>
+    </div>
+    <div class="impl-phase">
+      <div class="impl-bar" style="width:0%;background:var(--purple)"></div>
+      <div class="impl-time">Q4 2026</div>
+      <div class="impl-name" style="color:var(--purple)">SDPO</div>
+      <div class="impl-cap">Self-distillation</div>
+    </div>
+    <div class="impl-phase">
+      <div class="impl-bar" style="width:0%;background:var(--red)"></div>
+      <div class="impl-time">2027</div>
+      <div class="impl-name" style="color:var(--red)">Full loop</div>
+      <div class="impl-cap">κ > 0 recursive</div>
+    </div>
+  </div>
+
+<!-- Self-Evolution Engine -->
+<section class="section" id="self-evolution">
+  <div class="s-header">
+    <div class="s-title"><span class="s-dot pulse" style="background:var(--purple)"></span>Self-Evolution Engine</div>
+    <div class="s-sub">Helix doesn't just heal agents — it heals itself. Five research methods form a recursive improvement loop.</div>
+  </div>
+
+  <div style="display:flex;justify-content:center;padding:1rem 0">
+    <div style="position:relative;width:200px;height:200px">
+      <div style="position:absolute;inset:0;border-radius:50%;border:0.5px dashed rgba(167,139,250,.15);animation:spin 20s linear infinite"></div>
+      <div style="position:absolute;inset:20px;border-radius:50%;border:0.5px solid rgba(240,160,48,.15);animation:spinR 15s linear infinite"></div>
+      <div style="position:absolute;inset:45px;border-radius:50%;border:0.5px solid rgba(96,165,250,.15);animation:spin 10s linear infinite"></div>
+      <div style="position:absolute;inset:60px;border-radius:50%;background:radial-gradient(circle,rgba(167,139,250,.1),transparent 70%);display:flex;align-items:center;justify-content:center;animation:breathe 4s infinite">
+        <div style="text-align:center"><strong style="font-size:16px;display:block;background:linear-gradient(135deg,var(--purple),var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent">κ > 0</strong><span style="font-size:8px;font-family:var(--mono);color:var(--text-dim);letter-spacing:1px">RECURSIVE</span></div>
+      </div>
+      <div style="position:absolute;width:8px;height:8px;border-radius:50%;background:var(--purple);top:50%;left:50%;margin:-4px;animation:orbit1 8s linear infinite;box-shadow:0 0 12px rgba(167,139,250,.5)"></div>
+      <div style="position:absolute;width:7px;height:7px;border-radius:50%;background:var(--amber);top:50%;left:50%;margin:-3.5px;animation:orbit2 8s linear infinite;box-shadow:0 0 10px rgba(240,160,48,.5)"></div>
+      <div style="position:absolute;width:6px;height:6px;border-radius:50%;background:var(--blue);top:50%;left:50%;margin:-3px;animation:orbit3 8s linear infinite;box-shadow:0 0 8px rgba(96,165,250,.5)"></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0">
+    <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--purple-border)">
+      <div style="font-size:14px;margin-bottom:4px">🧠</div>
+      <div style="font-size:11px;font-weight:600;color:var(--purple)">MemRL</div>
+      <div style="font-size:9px;color:var(--text-dim);margin-top:2px">Memory learn</div>
+      <div style="font-size:9px;margin-top:4px;color:var(--green);font-family:var(--mono)">✓ shipped</div>
+    </div>
+    <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--amber-border)">
+      <div style="font-size:14px;margin-bottom:4px">⚗️</div>
+      <div style="font-size:11px;font-weight:600;color:var(--amber)">EvolveR</div>
+      <div style="font-size:9px;color:var(--text-dim);margin-top:2px">Distill knowledge</div>
+      <div style="font-size:9px;margin-top:4px;color:var(--amber);font-family:var(--mono)">Q2 2026</div>
+    </div>
+    <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--blue-border)">
+      <div style="font-size:14px;margin-bottom:4px">⚔️</div>
+      <div style="font-size:11px;font-weight:600;color:var(--blue)">Self-Play</div>
+      <div style="font-size:9px;color:var(--text-dim);margin-top:2px">Auto-evolve</div>
+      <div style="font-size:9px;margin-top:4px;color:var(--blue);font-family:var(--mono)">Q3 2026</div>
+    </div>
+    <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--green-border);opacity:.7">
+      <div style="font-size:14px;margin-bottom:4px">🔄</div>
+      <div style="font-size:11px;font-weight:600;color:var(--green)">SDPO</div>
+      <div style="font-size:9px;color:var(--text-dim);margin-top:2px">Self-teach</div>
+      <div style="font-size:9px;margin-top:4px;color:var(--text-dim);font-family:var(--mono)">Q4 2026</div>
+    </div>
+    <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--red-border);opacity:.6">
+      <div style="font-size:14px;margin-bottom:4px">∞</div>
+      <div style="font-size:11px;font-weight:600;color:var(--red)">GVU Loop</div>
+      <div style="font-size:9px;color:var(--text-dim);margin-top:2px">Full recursive</div>
+      <div style="font-size:9px;margin-top:4px;color:var(--text-dim);font-family:var(--mono)">2027</div>
+    </div>
+  </div>
+
+  <div style="background:var(--surface);border-radius:10px;padding:12px 16px;margin-top:12px;border:1px dashed var(--border);display:flex;align-items:center;gap:12px;font-size:12px;animation:glow 4s infinite">
+    <span style="font-family:var(--mono);color:var(--amber);font-size:14px;animation:pulse 2s infinite">↻</span>
+    <span style="color:var(--text-dim)">Each cycle → strictly better. 4 arXiv papers validate every step. <a href="research.html" style="color:var(--purple);text-decoration:none;font-weight:600">Read the full trade-off analysis →</a></span>
+  </div>
+</section>
+
 </div>
 
 <footer class="footer">
   <span style="font-family:var(--mono)">npm install @helix-agent/core</span>
+  <a href="research.html">Research</a>
   <a href="https://github.com/adrianhihi/helix" target="_blank">GitHub</a>
   <a href="https://www.npmjs.com/package/@helix-agent/core" target="_blank">npm</a>
   <span>MIT license</span>
-  <span>© 2026 Vial</span>
+  <span>© 2026 LaoMOS</span>
 </footer>
 
 <script>
