@@ -230,20 +230,6 @@ Every repair strategy is verified against safety constraints before execution us
 Few-shot repair learning: after seeing 3 nonce errors repaired, the system learns the "nonce error repair pattern" and can fix the 4th variant with a single example. Built on top of Context-Aware Gene Map's cross-platform transfer mechanism.
 - Status: Context-aware lookup and cross-platform transfer shipped in v1.5. Meta-learning layer in development.
 
-### Self-Evolution Engine
-
-Helix doesn't just heal other agents — it heals itself.
-
-| Level | Capability | Status |
-|-------|-----------|--------|
-| 1. Parameter evolution | Q-values, strategy params auto-optimize | Shipped |
-| 2. Strategy discovery | LLM generates new repair strategies, A/B tested | Shipped |
-| 3. Component generation | System detects weak perceive accuracy → auto-generates new adapter → sandbox tests → deploys | In development |
-| 4. Architecture evolution | System decides it needs a new pipeline stage → designs interface → generates code → canary deploys | Planned |
-| 5. Meta-evolution | System improves its own evolution mechanism — recursive self-improvement | Research |
-
-From parameter tuning to recursive self-improvement. Each level is an independent research contribution.
-
 ### Adversarial Robustness
 Four-layer defense against Gene Registry poisoning: reputation scoring, multi-agent verification (3 independent agents must validate), anomaly detection on Q-value trajectories, and automatic rollback to last known safe state.
 - Status: Push threshold + pull discount + natural selection shipped in v1.5. Full adversarial defense in development.
@@ -265,6 +251,45 @@ Phase 4:           Federated Learning — privacy-preserving distributed RL
 | 4 | Federated Learning layer | Privacy-preserving distributed RL | Cross-org learning without data sharing |
 
 Gene Map evolves from a local repair cache into a **distributed temporal knowledge graph with federated learning** — the collective intelligence layer for the autonomous agent economy.
+
+### Self-Evolution Engine
+
+Helix doesn't just heal other agents — it heals itself. Five research methods form a recursive improvement loop, each validated by peer-reviewed research.
+
+| Layer | Method | What it does | Paper | Status |
+|-------|--------|-------------|-------|--------|
+| 0 | **Gene Dream** | Background memory consolidation — cluster, prune, consolidate, enrich, reindex | Inspired by Claude Code Auto Dream + EvolveR | Next sprint |
+| 1 | **MemRL** | Gene Map as episodic memory with Q-value utility ranking | [arXiv:2601.03192](https://arxiv.org/abs/2601.03192) (2026) | Shipped v1.5 |
+| 2 | **EvolveR** | Distill raw repair records into abstract strategic principles | [arXiv:2510.16079](https://arxiv.org/abs/2510.16079) (2025) | Q2 2026 |
+| 3 | **Self-Play** | Challenger ↔ Repair ↔ Verifier — 24/7 autonomous evolution | [arXiv:2512.18552](https://arxiv.org/abs/2512.18552) (2025) | Q3 2026 |
+| 4 | **SDPO** | Self-distillation from Gene Map feedback — no external teacher | [arXiv:2601.20802](https://arxiv.org/abs/2601.20802) (2026) | Post-funding |
+| 5 | **GVU Loop** | Full recursive self-improvement — mathematically proven κ > 0 | [arXiv:2512.02731](https://arxiv.org/abs/2512.02731) (2025) | Research |
+
+**Core insight**: We don't distill models — we distill knowledge. Intelligence lives in the Gene Map, not in model parameters. No GPU needed for Layers 0–3.
+
+The recursive loop: **Remember** (MemRL) → **Dream** (Gene Dream) → **Abstract** (EvolveR) → **Challenge** (Self-Play) → **Internalize** (SDPO) → **Recurse** (GVU) → κ > 0.
+
+### Gene Dream Cycle
+
+Inspired by human REM sleep and [Claude Code's Auto Dream](https://www.anthropic.com), Gene Dream is background memory consolidation that creates new knowledge.
+
+```
+Trigger: geneMap.records > 1000 && hoursSinceLastDream > 24 && newRepairs > 50
+
+Five stages:
+  1. Cluster     — group similar genes by embedding similarity
+  2. Prune       — remove genes with Q < 0.2 and age > 7 days
+  3. Consolidate — merge clusters into abstract meta-genes via LLM
+  4. Enrich      — add conditional context (gas thresholds, time patterns)
+  5. Reindex     — rebuild predictive graph + embedding signatures
+```
+
+The difference from Auto Dream: Claude Code consolidates *memories*. Gene Dream consolidates memories **and creates new knowledge** — abstract strategic principles that transfer across platforms and error types.
+
+```bash
+npx helix dream        # manual trigger
+npx helix dream --dry  # preview what would change
+```
 
 ## What's New in v1.5
 
