@@ -230,6 +230,22 @@ Every repair strategy is verified against safety constraints before execution us
 Few-shot repair learning: after seeing 3 nonce errors repaired, the system learns the "nonce error repair pattern" and can fix the 4th variant with a single example. Built on top of Context-Aware Gene Map's cross-platform transfer mechanism.
 - Status: Context-aware lookup and cross-platform transfer shipped in v1.5. Meta-learning layer in development.
 
+### Self-Generating Adapters
+New payment platform launches with unfamiliar error formats? Helix doesn't wait for a human to write an adapter. When Perceive accuracy drops for a new platform, Helix automatically collects error samples, calls an LLM to generate a platform adapter, sandbox-tests it, and hot-deploys it — restoring 99% accuracy with zero human intervention.
+
+```
+Scenario: Kite AI launches with new error formats
+  Today:   Engineer writes Kite adapter manually (2-3 days)
+  Level 3: Helix detects low Perceive accuracy on Kite errors
+    → Auto-collects Kite error samples
+    → LLM generates Kite adapter (perceive + construct)
+    → Sandbox test → passes
+    → Hot-deploy → Perceive accuracy restored to 99%
+    → Zero human intervention
+```
+
+- Status: LLM Perceive fallback + Error Embedding shipped in v1.5. Auto-generation pipeline in development.
+
 ### Adversarial Robustness
 Four-layer defense against Gene Registry poisoning: reputation scoring, multi-agent verification (3 independent agents must validate), anomaly detection on Q-value trajectories, and automatic rollback to last known safe state.
 - Status: Push threshold + pull discount + natural selection shipped in v1.5. Full adversarial defense in development.
