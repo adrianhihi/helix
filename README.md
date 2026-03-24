@@ -208,6 +208,39 @@ Listed on [mppscan.com](https://mppscan.com).
 - **OpenTelemetry** — optional tracing spans + metrics for Datadog/Grafana
 - **Audit Log** — every repair recorded, exportable for compliance
 
+## Technology Roadmap
+
+### Causal Repair Graph
+Moving beyond statistical correlation to causal inference. When PCEC repairs a nonce error, the Causal Graph traces the root cause: concurrent wallet access → shared nonce pool → nonce conflict. This enables preventive repairs — fixing the cause before the symptom appears.
+- Status: Architecture designed, Predictive Failure Graph (statistical) shipped in v1.5
+
+### Federated Gene Learning
+Upgrading Gene Registry from simple push/pull to federated reinforcement learning. Each agent trains Q-values locally and shares only gradient updates — never raw error data. The Registry aggregates gradients using differential privacy, producing a global model that improves every agent without exposing anyone's data.
+- Status: Gene Registry (v1.5) provides the foundation. Federated layer in development.
+
+### Formal Safety Verification
+Every repair strategy is verified against safety constraints before execution using SMT-based constraint checking: balance ≥ minimum, gas ≤ ceiling, recipient ∈ whitelist. If verification fails, the strategy is blocked and PCEC falls back to observe mode. Aerospace-grade safety for agent payments.
+- Status: Three-tier safety model (observe/auto/full) shipped. Formal verification layer in development.
+
+### Meta-Learning Repair
+Few-shot repair learning: after seeing 3 nonce errors repaired, the system learns the "nonce error repair pattern" and can fix the 4th variant with a single example. Built on top of Context-Aware Gene Map's cross-platform transfer mechanism.
+- Status: Context-aware lookup and cross-platform transfer shipped in v1.5. Meta-learning layer in development.
+
+### Adversarial Robustness
+Four-layer defense against Gene Registry poisoning: reputation scoring, multi-agent verification (3 independent agents must validate), anomaly detection on Q-value trajectories, and automatic rollback to last known safe state.
+- Status: Push threshold + pull discount + natural selection shipped in v1.5. Full adversarial defense in development.
+
+## Gene Map Architecture Evolution
+
+```
+v1.0  Gene Map         — Local SQLite, fixed α, string matching
+v1.2  + LLM Fallback   — Claude/GPT classify unknown errors
+v1.3  + Adaptive RL     — Bayesian Q ± σ, Thompson Sampling, strategy chains
+v1.4  + Otel + Audit    — OpenTelemetry spans, repair audit log
+v1.5  + Registry + AI   — Gene Registry, error embedding, A/B testing
+next  + Causal + Federated — Causal repair graphs, federated learning
+```
+
 ## Docs
 
 📖 [User Runbook](docs/RUNBOOK.md) — Complete guide from installation to production
