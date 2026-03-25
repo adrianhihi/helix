@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.8.0] - 2026-03-25
+
+### Features
+- **LLM Integration**: 3-point intelligence layer (Perceive Fallback, Construct Generator, Gene Reasoning)
+- **Gene Telemetry**: Anonymous discovery reporting with UPSERT dedup, admin auth, 90-day TTL
+- **Python SDK**: `pip install helix-agent-sdk` (HelixClient, @helix_wrap, helix_guard)
+- **Docker**: `docker run -d -p 7842:7842 adrianhihi/helix-server`
+- **Coinbase Demo v3**: 6-act demo, 17/17 patterns, LLM + Python SDK + Telemetry
+
+### Fixes
+- Gene Telemetry: auth, dedup, version, sanitize, LLM-only reporting, TTL
+- Railway deployment: correct start command, PORT env var
+- API server: LLM enabled when ANTHROPIC_API_KEY set, welcome at /
+- GeneMap: public `database` getter
+
+### Stats
+- 321 TypeScript tests, 35 files + 14 Python tests
+- 17 Coinbase error patterns (100% coverage)
+
 ## [1.7.0] - 2026-03-25
 
 ### Added

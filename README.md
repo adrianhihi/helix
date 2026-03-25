@@ -5,7 +5,7 @@
 **Self-healing infrastructure for AI agent payments**
 
 [![npm](https://img.shields.io/npm/v/@helix-agent/core?style=flat-square&color=f0a030)](https://www.npmjs.com/package/@helix-agent/core)
-[![tests](https://img.shields.io/badge/tests-314%20passed-4ade80?style=flat-square)](https://github.com/adrianhihi/helix/actions)
+[![tests](https://img.shields.io/badge/tests-335%20passed-4ade80?style=flat-square)](https://github.com/adrianhihi/helix/actions)
 [![recovery](https://img.shields.io/badge/recovery-90.3%25-60a5fa?style=flat-square)]()
 [![platforms](https://img.shields.io/badge/platforms-Tempo%20%7C%20Coinbase%20%7C%20Privy-a78bfa?style=flat-square)]()
 [![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
@@ -63,6 +63,14 @@ Second time same error → IMMUNE in <1ms
 
 The **Gene Map** remembers every repair. Agent A's failure becomes Agent B's immunity.
 
+### Three Layers of Intelligence
+
+| Layer | What | Speed | Cost |
+|-------|------|-------|------|
+| Pattern Match + Gene Map | 90% of errors | <5ms | $0 |
+| LLM Fallback (Claude/GPT) | 10% unknown errors | ~1-6s | $0.001 |
+| Gene Telemetry | Network learns, coverage grows | Background | $0 |
+
 ## Benchmarks
 
 | Approach | Recovery Rate | Notes |
@@ -108,6 +116,17 @@ curl -X POST http://localhost:7842/repair \
 ```
 
 Python, Go, Rust — anything that speaks HTTP.
+
+## Docker
+
+```bash
+docker run -d -p 7842:7842 adrianhihi/helix-server
+```
+
+Or with docker-compose:
+```bash
+docker-compose up -d
+```
 
 ## v1.7 — Failure Learning + Multi-D Scoring
 
