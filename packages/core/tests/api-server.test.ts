@@ -110,4 +110,73 @@ describe('REST API Server', () => {
     expect(res.status).toBe(204);
     expect(res.headers.get('access-control-allow-origin')).toBe('*');
   });
+
+  // ── Gene Collector Endpoints ──
+
+  it('POST /api/telemetry receives events', async () => {
+    const res = await fetch(`${BASE}/api/telemetry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        events: [{
+          errorPattern: 'MERKLE_PROOF_INVALID on block [NUM]',
+          code: 'tx-reverted', category: 'batch', severity: 'high',
+          strategy: 'remove_and_resubmit', qValue: 0.65, source: 'llm',
+          platform: 'tempo', helixVersion: '1.7.1', timestamp: Date.now(),
+        }],
+      }),
+    });
+    const data = await res.json() as any;
+    expect(res.status).toBe(200);
+    expect(data.received).toBe(1);
+  });
+
+  it('POST /api/telemetry rejects empty events', async () => {
+    const res = await fetch(`${BASE}/api/telemetry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ events: [] }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('GET /api/discoveries returns unreviewed', async () => {
+    const res = await fetch(`${BASE}/api/discoveries`);
+    const data = await res.json() as any[];
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThanOrEqual(1);
+    expect(data[0].reviewed).toBe(0);
+  });
+
+  it('POST /api/discoveries/:id/approve works', async () => {
+    // Get the ID from discoveries
+    const list = await (await fetch(`${BASE}/api/discoveries`)).json() as any[];
+    const id = list[0].id;
+
+    const res = await fetch(`${BASE}/api/discoveries/${id}/approve`, { method: 'POST' });
+    const data = await res.json() as any;
+    expect(data.approved).toBe(true);
+
+    // Verify it shows in approved list
+    const approved = await (await fetch(`${BASE}/api/discoveries?approved=true`)).json() as any[];
+    expect(approved.some((d: any) => d.id === id)).toBe(true);
+  });
+
+  it('POST /api/discoveries/:id/reject works', async () => {
+    // Submit another event to reject
+    await fetch(`${BASE}/api/telemetry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        events: [{ errorPattern: 'reject-me', code: 'test', category: 'test', strategy: 'retry', platform: 'generic' }],
+      }),
+    });
+    const list = await (await fetch(`${BASE}/api/discoveries`)).json() as any[];
+    const target = list.find((d: any) => d.error_pattern === 'reject-me');
+    if (target) {
+      const res = await fetch(`${BASE}/api/discoveries/${target.id}/reject`, { method: 'POST' });
+      const data = await res.json() as any;
+      expect(data.rejected).toBe(true);
+    }
+  });
 });

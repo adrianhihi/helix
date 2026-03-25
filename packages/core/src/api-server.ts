@@ -5,6 +5,7 @@
  * Start: npx helix serve [--port 7842] [--mode observe|auto|full]
  */
 import http from 'node:http';
+import Database from 'better-sqlite3';
 import { PcecEngine } from './engine/pcec.js';
 import { GeneMap } from './engine/gene-map.js';
 import { defaultAdapters } from './platforms/index.js';
@@ -54,6 +55,12 @@ export function createApiServer(opts: ApiServerOptions = {}) {
   const geneMap = new GeneMap(geneMapPath);
   const engine = new PcecEngine(geneMap, 'api-server', { mode } as any);
   for (const a of defaultAdapters) engine.registerAdapter(a);
+
+  // Gene Collector database (shares the same SQLite file)
+  const collectorDb = (geneMap as any).db as Database.Database;
+  collectorDb.exec(`CREATE TABLE IF NOT EXISTS gene_discoveries (id INTEGER PRIMARY KEY AUTOINCREMENT, error_pattern TEXT NOT NULL, code TEXT NOT NULL, category TEXT NOT NULL, severity TEXT, strategy TEXT NOT NULL, q_value REAL, source TEXT, reasoning TEXT, llm_provider TEXT, platform TEXT, helix_version TEXT, reported_at INTEGER, reviewed INTEGER DEFAULT 0, approved INTEGER DEFAULT 0, created_at INTEGER DEFAULT (unixepoch()))`);
+  collectorDb.exec(`CREATE INDEX IF NOT EXISTS idx_discoveries_pattern ON gene_discoveries(error_pattern, code, category)`);
+  collectorDb.exec(`CREATE INDEX IF NOT EXISTS idx_discoveries_reviewed ON gene_discoveries(reviewed)`);
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
@@ -154,6 +161,52 @@ export function createApiServer(opts: ApiServerOptions = {}) {
     // POST /dream (placeholder)
     if (path === '/dream' && req.method === 'POST') {
       return json(res, { status: 'not_implemented', message: 'Gene Dream cycle coming in next release' });
+    }
+
+    // ── Gene Collector Endpoints ──
+
+    // POST /api/telemetry — receive anonymous discoveries
+    if (path === '/api/telemetry' && req.method === 'POST') {
+      try {
+        const body = JSON.parse(await readBody(req));
+        const events = body.events;
+        if (!Array.isArray(events) || events.length === 0) {
+          return json(res, { error: 'events array required' }, 400);
+        }
+        const batch = events.slice(0, 100);
+        const ins = collectorDb.prepare(`INSERT INTO gene_discoveries (error_pattern, code, category, severity, strategy, q_value, source, reasoning, llm_provider, platform, helix_version, reported_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+        collectorDb.transaction(() => {
+          for (const e of batch) {
+            ins.run(e.errorPattern, e.code, e.category, e.severity ?? 'medium', e.strategy, e.qValue ?? 0.5, e.source ?? 'unknown', e.reasoning, e.llmProvider, e.platform, e.helixVersion, e.timestamp ?? Date.now());
+          }
+        })();
+        return json(res, { received: batch.length });
+      } catch (e) {
+        return json(res, { error: String(e) }, 500);
+      }
+    }
+
+    // GET /api/discoveries — list discoveries for review
+    if (path === '/api/discoveries' && req.method === 'GET') {
+      const approved = url.searchParams.get('approved') === 'true';
+      const rows = approved
+        ? collectorDb.prepare('SELECT * FROM gene_discoveries WHERE approved = 1 ORDER BY created_at DESC').all()
+        : collectorDb.prepare('SELECT * FROM gene_discoveries WHERE reviewed = 0 ORDER BY created_at DESC LIMIT 100').all();
+      return json(res, rows);
+    }
+
+    // POST /api/discoveries/:id/approve
+    if (path.startsWith('/api/discoveries/') && path.endsWith('/approve') && req.method === 'POST') {
+      const id = path.split('/')[3];
+      collectorDb.prepare('UPDATE gene_discoveries SET reviewed = 1, approved = 1 WHERE id = ?').run(id);
+      return json(res, { approved: true });
+    }
+
+    // POST /api/discoveries/:id/reject
+    if (path.startsWith('/api/discoveries/') && path.endsWith('/reject') && req.method === 'POST') {
+      const id = path.split('/')[3];
+      collectorDb.prepare('UPDATE gene_discoveries SET reviewed = 1, approved = 0 WHERE id = ?').run(id);
+      return json(res, { rejected: true });
     }
 
     json(res, { error: 'Not found' }, 404);
