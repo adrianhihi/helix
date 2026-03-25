@@ -52,7 +52,7 @@ export function createApiServer(opts: ApiServerOptions = {}) {
   const geneMapPath = opts.geneMapPath ?? './helix-genes.db';
 
   const geneMap = new GeneMap(geneMapPath);
-  const engine = new PcecEngine(geneMap, 'api-server', { mode } as any);
+  const engine = new PcecEngine(geneMap, 'api-server', { mode, llm: { provider: 'anthropic', enabled: !!(process.env.ANTHROPIC_API_KEY || process.env.HELIX_LLM_API_KEY) } } as any);
   for (const a of defaultAdapters) engine.registerAdapter(a);
 
   // Gene Collector database (shares the same SQLite file)
