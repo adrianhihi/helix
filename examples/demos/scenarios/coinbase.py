@@ -197,10 +197,10 @@ def run():
     pause('When pattern matching misses, Claude classifies in real-time.')
 
     llm_errors = [
-        ('Novel Base L2 error',
-         'BLOB_SIDECAR_UNAVAILABLE: EIP-4844 blob data pruned from Base sequencer, cannot reconstruct calldata'),
-        ('Novel account abstraction error',
-         'PAYMASTER_CONTEXT_STALE: bundler rejected UserOp because paymaster context hash differs from on-chain state'),
+        ('Novel L2 sequencer error',
+         'ATTESTATION_COMMITTEE_DIVERGED: beacon committee 0x7f split during epoch finalization on Base rollup'),
+        ('Novel mempool error',
+         'MEMPOOL_EVICTION_CASCADE: priority fee auction displaced 47 pending operations from sequencer queue'),
     ]
 
     for label, error_msg in llm_errors:
