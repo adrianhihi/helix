@@ -98,7 +98,7 @@ export function createApiServer(opts: ApiServerOptions = {}) {
         failureCode: g.failureCode, category: g.category,
         strategy: g.strategy, qValue: g.qValue,
         qVariance: g.qVariance, successCount: g.successCount,
-        platforms: g.platforms, reasoning: g.reasoning,
+        platforms: g.platforms, reasoning: g.reasoning, scores: g.scores || {},
       }));
       return json(res, { genes: summary, total: summary.length });
     }
@@ -140,7 +140,7 @@ export function createApiServer(opts: ApiServerOptions = {}) {
             params: result.commitOverrides ?? {},
           } : null,
           repairMs,
-          immune: result.immune,
+          immune: result.immune, scores: (result as any).scores || {},
           candidates: result.candidates.slice(0, 5).map(c => ({
             strategy: c.strategy, score: c.score, source: c.source,
           })),
