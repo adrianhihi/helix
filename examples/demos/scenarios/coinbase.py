@@ -197,15 +197,15 @@ def run():
     pause('When pattern matching misses, Claude classifies in real-time.')
 
     llm_errors = [
-        ('Never-seen-before error',
-         'MERKLE_PROOF_INVALID: state root mismatch after block reorganization on Base'),
-        ('Exotic timeout',
-         'ZKPROOF_TIMEOUT: zero-knowledge proof generation exceeded 60s deadline'),
+        ('Novel Base L2 error',
+         'BLOB_SIDECAR_UNAVAILABLE: EIP-4844 blob data pruned from Base sequencer, cannot reconstruct calldata'),
+        ('Novel account abstraction error',
+         'PAYMASTER_CONTEXT_STALE: bundler rejected UserOp because paymaster context hash differs from on-chain state'),
     ]
 
     for label, error_msg in llm_errors:
-        print(f'  \033[90m  Sending: "{error_msg[:60]}..."\033[0m')
-        r = repair(error_msg, agent_id='llm-demo')
+        print(f'  \033[90m  Sending: "{error_msg[:65]}..."\033[0m')
+        r = repair(error_msg, agent_id=f'llm-{label[:8]}-{int(time.time())}')
         strategy = (r.get('strategy') or {}).get('name', '?')
         llm_used = (r.get('failure') or {}).get('llmClassified', False)
         immune = r.get('immune', False)
