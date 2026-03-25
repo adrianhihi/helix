@@ -60,6 +60,37 @@ with helix_guard("tempo") as guard:
             result = agent.transfer(to, amount)
 ```
 
+## Features (via Helix Server)
+
+The Python SDK talks to the Helix server which provides:
+
+- **17 Coinbase patterns** — CDP API, ERC-4337, x402, policy, network
+- **Cross-platform immunity** — genes learned on Tempo/Privy auto-heal Coinbase errors
+- **LLM fallback** — unknown errors classified by Claude/GPT in real-time ($0.001), then cached forever ($0)
+- **Gene Telemetry** — anonymous network learning, coverage grows over time
+- **321 TypeScript tests + 14 Python tests** — production-grade reliability
+
+Enable LLM on the server:
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+docker run -d -p 7842:7842 -e ANTHROPIC_API_KEY adrianhihi/helix-server
+```
+
+## Architecture
+
+```
+┌──────────────────┐     HTTP/JSON    ┌──────────────────┐
+│ Your Python Agent│ ──────────────→  │ Helix Server     │
+│ (AgentKit, etc)  │                  │ PCEC + Gene Map  │
+│                  │ ←──────────────  │ LLM + Telemetry  │
+│ pip install      │    Strategy      │ docker run or    │
+│ helix-agent-sdk  │                  │ npm install      │
+└──────────────────┘                  └──────────────────┘
+```
+
+All intelligence runs server-side. The Python SDK is a lightweight HTTP client.
+Your agent gets the full power of PCEC, Gene Map, LLM, and network learning.
+
 ## Configuration
 
 ```python
