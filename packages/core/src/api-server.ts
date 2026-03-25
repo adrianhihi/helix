@@ -84,6 +84,28 @@ export function createApiServer(opts: ApiServerOptions = {}) {
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
     const path = url.pathname;
 
+    // GET / — welcome
+    if (path === '/' && req.method === 'GET') {
+      const health = geneMap.health();
+      return json(res, {
+        name: 'helix',
+        description: 'Self-healing infrastructure for AI agent payments',
+        version: '1.7.1',
+        geneCount: health.totalGenes,
+        platforms: health.platforms,
+        endpoints: {
+          'POST /repair': 'Send error for diagnosis + repair strategy',
+          'GET /health': 'Healthcheck',
+          'GET /status': 'Gene Map stats',
+          'GET /genes': 'List all genes',
+          'POST /api/telemetry': 'Report anonymous discoveries',
+        },
+        docs: 'https://github.com/adrianhihi/helix',
+        npm: 'npm install @helix-agent/core',
+        python: 'pip install helix-agent-sdk',
+      });
+    }
+
     // CORS preflight
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
