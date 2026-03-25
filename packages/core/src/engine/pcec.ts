@@ -23,6 +23,8 @@ import { HelixOtel, NOOP_OTEL } from './otel.js';
 import { GeneRegistryClient } from './gene-registry.js';
 import { matchErrorSignature } from './error-embedding.js';
 import { ABTestManager } from './ab-test.js';
+import { maybeDistillFromFailures } from './failure-distiller.js';
+import { computeRepairScore } from './repair-score.js';
 import type { ABTest } from './ab-test.js';
 
 // Category C strategies that move funds — require 'full' mode
@@ -528,6 +530,16 @@ export class PcecEngine {
       this.geneMap.store(gene);
       this.geneMap.recordSuccess(failure.code, failure.category, totalMs, repairContext);
 
+      // Multi-dimensional scoring
+      const scores = computeRepairScore({
+        perceiveSource: failure.llmClassified ? 'llm' : 'adapter',
+        costUsd: winner.estimatedCostUsd,
+        repairMs: totalMs,
+        mode,
+        platformCount: gene.platforms.length,
+      });
+      this.geneMap.updateScores(failure.code, failure.category, scores.dimensions);
+
       bus.emit('gene', this.agentId, {
         code: failure.code, category: failure.category,
         strategy: winner.strategy, platform: failure.platform,
@@ -613,6 +625,15 @@ export class PcecEngine {
     if (existingGene) {
       this.geneMap.recordFailure(failure.code, failure.category, repairContext);
     }
+
+    // ── Failure Learning: record + maybe distill defensive Gene ──
+    this.geneMap.recordFailedRepair({
+      failureCode: failure.code, category: failure.category,
+      strategy: winner.strategy, error: error.message,
+      repairError: commitResult.description,
+      context: repairContext,
+    });
+    maybeDistillFromFailures(this.geneMap, failure.code, winner.strategy);
 
     this.otel.endRepairSpan(span, { success: false, immune: false, strategy: winner.strategy, code: failure.code, category: failure.category, totalMs });
     this.otel.recordRepair({ success: false, immune: false, strategy: winner.strategy, code: failure.code, durationMs: totalMs });

@@ -1,6 +1,6 @@
 {
   "name": "@helix-agent/core",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "Self-healing infrastructure for AI agent payments. Auto-repairs payment failures across Tempo, Privy, Stripe, and any HTTP service.",
   "type": "module",
   "main": "dist/index.js",

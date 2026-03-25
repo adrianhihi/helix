@@ -27,6 +27,7 @@ function parseRow(row: Record<string, unknown>): GeneCapsule {
     failureAnalysis: row.failure_analysis ? JSON.parse(row.failure_analysis as string) : [],
     successContext: row.success_context ? JSON.parse(row.success_context as string) : {},
     failureContext: row.failure_context ? JSON.parse(row.failure_context as string) : {},
+    scores: row.scores ? JSON.parse(row.scores as string) : undefined,
   };
 }
 
@@ -69,7 +70,7 @@ export function thompsonSample(qValue: number, qVariance: number): number {
 }
 
 export class GeneMap {
-  private static readonly SCHEMA_VERSION = 5;
+  private static readonly SCHEMA_VERSION = 6;
   private db: Database.Database;
   private stmtLookup!: Database.Statement;
   private stmtUpsert!: Database.Statement;
@@ -132,6 +133,11 @@ export class GeneMap {
         addCol('gene_links', 'transition_probability', 'REAL', '0.0');
         addCol('gene_links', 'avg_delay_ms', 'REAL', '0.0');
         addCol('gene_links', 'from_count', 'INTEGER', '0');
+      },
+      5: () => {
+        try { this.db.exec(`ALTER TABLE genes ADD COLUMN scores TEXT DEFAULT '{}'`); } catch { /* exists */ }
+        this.db.exec(`CREATE TABLE IF NOT EXISTS failed_repairs (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, error TEXT NOT NULL, repair_error TEXT NOT NULL, context TEXT DEFAULT '{}', timestamp INTEGER NOT NULL)`);
+        this.db.exec(`CREATE INDEX IF NOT EXISTS idx_failed_pattern ON failed_repairs(failure_code, strategy)`);
       },
     };
     this.db.transaction(() => {
@@ -404,6 +410,29 @@ export class GeneMap {
       ? this.db.prepare('SELECT * FROM repair_audit WHERE timestamp >= ? ORDER BY timestamp ASC').all(since)
       : this.db.prepare('SELECT * FROM repair_audit ORDER BY timestamp ASC').all();
     return JSON.stringify(rows, null, 2);
+  }
+
+  // ── Failed Repair Records ──
+
+  recordFailedRepair(entry: { failureCode: string; category: string; strategy: string; error: string; repairError: string; context?: Record<string, unknown>; timestamp?: number }): void {
+    this.db.prepare(`INSERT INTO failed_repairs (failure_code, category, strategy, error, repair_error, context, timestamp) VALUES (?,?,?,?,?,?,?)`).run(
+      entry.failureCode, entry.category, entry.strategy, entry.error.slice(0, 500), entry.repairError.slice(0, 500), JSON.stringify(entry.context ?? {}), entry.timestamp ?? Date.now(),
+    );
+  }
+
+  getFailedRepairCount(failureCode: string, strategy: string): number {
+    return (this.db.prepare('SELECT COUNT(*) as cnt FROM failed_repairs WHERE failure_code = ? AND strategy = ?').get(failureCode, strategy) as { cnt: number }).cnt;
+  }
+
+  getFailedRepairs(failureCode: string, strategy: string, limit = 20): import('./failure-distiller.js').FailedRepairRecord[] {
+    return this.db.prepare('SELECT failure_code as failureCode, category, strategy, error, repair_error as repairError, context, timestamp FROM failed_repairs WHERE failure_code = ? AND strategy = ? ORDER BY timestamp DESC LIMIT ?').all(failureCode, strategy, limit).map((r: any) => ({ ...r, context: JSON.parse(r.context || '{}') })) as any[];
+  }
+
+  // ── Multi-Dimensional Scores ──
+
+  updateScores(code: string, category: string, scores: Record<string, number>): void {
+    this.db.prepare('UPDATE genes SET scores = ? WHERE failure_code = ? AND category = ?').run(JSON.stringify(scores), code, category);
+    this.cache.delete(this.cacheKey(code, category));
   }
 
   // ── Predictive Failure Graph (delegated to GenePredictiveGraph) ──

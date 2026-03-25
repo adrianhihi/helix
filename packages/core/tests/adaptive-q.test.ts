@@ -121,9 +121,9 @@ describe('Adaptive Learning Rate + Bayesian Q-value', () => {
 
   // ── Schema migration ──
 
-  it('schema version is 5', () => {
+  it('schema version is 6', () => {
     const row = (gm as any).db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as { version: number };
-    expect(row.version).toBe(5);
+    expect(row.version).toBe(6);
   });
 
   it('new columns exist in genes table', () => {

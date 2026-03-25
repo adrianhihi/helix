@@ -125,6 +125,8 @@ export interface GeneCapsule {
   failureAnalysis?: string[];
   successContext?: { chains?: string[]; walletTypes?: string[]; platforms?: string[] };
   failureContext?: { chains?: string[]; walletTypes?: string[]; note?: string };
+  /** Multi-dimensional repair scores */
+  scores?: Record<string, number>;
   /** Original Q-value before context adjustment (set by context-aware lookup) */
   _originalQValue?: number;
   /** Context similarity score 0.5–1.0 (set by context-aware lookup) */

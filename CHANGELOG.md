@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0] - 2026-03-25
+
+### Added
+- **Failure Learning**: Records failed repairs in `failed_repairs` table. After 5 same-pattern failures, auto-distills a defensive Gene that blocks the ineffective strategy.
+- **Multi-Dimensional Q-Scoring**: 6-dimension scoring (accuracy, costEfficiency, latency, safety, transferability, reliability) with weighted overall score. Stored as JSON in `scores` column.
+- Schema v6: `failed_repairs` table + `scores` column on genes
+- 314 tests across 35 files (from 299/33)
+
 ## [1.6.1] - 2026-03-25
 
 ### Added
