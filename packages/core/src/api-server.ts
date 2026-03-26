@@ -268,6 +268,19 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       return json(res, { total: scored.length, avgComposite: avg, genes: scored });
     }
 
+    // GET /api/causal-graph
+    if (path === '/api/causal-graph' && req.method === 'GET') {
+      const { CausalGraph } = await import('./engine/causal-graph.js');
+      return json(res, new CausalGraph(geneMap.database).getFullGraph());
+    }
+
+    // GET /api/anti-patterns
+    if (path === '/api/anti-patterns' && req.method === 'GET') {
+      const { NegativeKnowledge } = await import('./engine/negative-knowledge.js');
+      const nk = new NegativeKnowledge(geneMap.database);
+      return json(res, { antiPatterns: nk.getAll(), total: nk.count() });
+    }
+
     // ── Gene Collector Endpoints ──
 
     // POST /api/telemetry — receive anonymous discoveries

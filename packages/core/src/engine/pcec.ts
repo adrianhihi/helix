@@ -26,6 +26,8 @@ import { ABTestManager } from './ab-test.js';
 import { maybeDistillFromFailures } from './failure-distiller.js';
 import { computeRepairScore } from './repair-score.js';
 import type { ABTest } from './ab-test.js';
+import { CausalGraph } from './causal-graph.js';
+import { NegativeKnowledge } from './negative-knowledge.js';
 
 // Category C strategies that move funds — require 'full' mode
 const FUND_MOVEMENT_STRATEGIES = [
@@ -71,6 +73,8 @@ export class PcecEngine {
   private otel: HelixOtel;
   private registry?: GeneRegistryClient;
   private abTests: ABTestManager = new ABTestManager();
+  private causalGraph: CausalGraph;
+  private negativeKnowledge: NegativeKnowledge;
 
   constructor(geneMap: GeneMap, agentId: string = 'default', options?: WrapOptions) {
     this.geneMap = geneMap;
@@ -78,6 +82,8 @@ export class PcecEngine {
     this.options = options ?? {};
     this.provider = new HelixProvider(options?.provider);
     this.otel = options?.otel ? new HelixOtel(options.otel) : NOOP_OTEL;
+    this.causalGraph = new CausalGraph(geneMap.database);
+    this.negativeKnowledge = new NegativeKnowledge(geneMap.database);
     if (options?.registry?.url) {
       this.registry = new GeneRegistryClient({ ...options.registry, agentId: this.agentId });
       this.registry.startAutoSync(this.geneMap);
@@ -238,6 +244,10 @@ export class PcecEngine {
       severity: failure.severity, platform: failure.platform,
       details: failure.details, llmClassified: failure.llmClassified,
     });
+
+    // ── Causal Graph: record occurrence + causation ──
+    this.causalGraph.recordOccurrence(failure.code, failure.category, this.agentId);
+    this.causalGraph.recordCausation(failure.code, failure.category);
 
     // ── D6: Systematic failure detection ──
     const systematicWarning = this.checkSystematic(failure);
@@ -436,6 +446,12 @@ export class PcecEngine {
 
     // ── EVALUATE ──
     const scored = evaluate(candidates, failure);
+    // Apply anti-pattern penalties from Negative Knowledge
+    for (const c of scored) {
+      const penalty = this.negativeKnowledge.getPenalty(failure.code, failure.category, c.strategy);
+      if (penalty < 1.0) c.score = Math.round(c.score * penalty);
+    }
+    scored.sort((a, b) => b.score - a.score);
     const winner = scored[0];
     this.otel.addStageEvent(span, 'evaluate', { winner: winner.strategy, score: winner.score });
     bus.emit('evaluate', this.agentId, {
@@ -634,6 +650,7 @@ export class PcecEngine {
       context: repairContext,
     });
     maybeDistillFromFailures(this.geneMap, failure.code, winner.strategy);
+    this.negativeKnowledge.record(failure.code, failure.category, winner.strategy, commitResult.description);
 
     this.otel.endRepairSpan(span, { success: false, immune: false, strategy: winner.strategy, code: failure.code, category: failure.category, totalMs });
     this.otel.recordRepair({ success: false, immune: false, strategy: winner.strategy, code: failure.code, durationMs: totalMs });

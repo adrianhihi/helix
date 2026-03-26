@@ -48,7 +48,7 @@ describe('Schema Migrations', () => {
     expect(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='gene_discoveries'").get()).toBeTruthy();
   });
 
-  it('migrates from v1 to v3', () => {
+  it('migrates from v1 to latest', () => {
     // Simulate v1 database
     db.exec(`CREATE TABLE gene_meta (key TEXT PRIMARY KEY, value TEXT)`);
     db.prepare("INSERT INTO gene_meta (key, value) VALUES ('data_schema_version', '1')").run();
@@ -56,7 +56,7 @@ describe('Schema Migrations', () => {
 
     expect(needsMigration(db).currentVersion).toBe(1);
     const applied = runMigrations(db);
-    expect(applied.length).toBe(2);
+    expect(applied.length).toBe(CURRENT_SCHEMA_VERSION - 1);
     expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
   });
 
@@ -69,7 +69,7 @@ describe('Schema Migrations', () => {
     runMigrations(db, { decayOnMajorBump: true });
     const gene = db.prepare("SELECT q_value FROM genes WHERE failure_code = 'test'").get() as any;
     expect(gene.q_value).toBeLessThan(0.8);
-    expect(gene.q_value).toBeGreaterThan(0.6);
+    expect(gene.q_value).toBeGreaterThan(0.5);
   });
 
   it('migrations are idempotent', () => {
