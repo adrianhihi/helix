@@ -218,7 +218,11 @@ export function wrap<TArgs extends unknown[], TResult>(
               }
             }
           }
-          // For simple retry: currentArgs stays the same, loop retries
+          // For simple retry: apply exponential backoff for backoff_retry
+          if (strategy === 'backoff_retry') {
+            const backoffMs = Math.min(1000 * Math.pow(2, attempt), 16000);
+            await new Promise(r => setTimeout(r, backoffMs));
+          }
         } catch (helixError) {
           if ((helixError as any)?._helix || (helixError as any)?.helixRecommendation) throw helixError;
           options?.onHelixError?.(helixError as Error);

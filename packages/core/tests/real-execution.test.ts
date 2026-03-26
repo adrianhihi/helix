@@ -84,3 +84,23 @@ describe('Real Execution — remove_and_resubmit', () => {
     expect(lastTx.gasPrice).toBe(1300n);
   });
 });
+
+describe('Real Execution — backoff_retry', () => {
+  it('has exponential delay', { timeout: 15000 }, async () => {
+    const callTimes: number[] = [];
+    let callCount = 0;
+    const fn = async () => {
+      callTimes.push(Date.now());
+      callCount++;
+      if (callCount <= 2) throw new Error('HTTP 429: Too Many Requests');
+      return 'ok';
+    };
+    const safe = wrap(fn, { mode: 'auto', geneMapPath: ':memory:', logLevel: 'silent' });
+    await safe();
+    expect(callCount).toBe(3);
+    if (callTimes.length >= 3) {
+      const gap = callTimes[1] - callTimes[0];
+      expect(gap).toBeGreaterThan(800); // ~1s with tolerance
+    }
+  });
+});
