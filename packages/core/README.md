@@ -5,14 +5,24 @@
 Every payment failure only needs to be solved once. `wrap()` makes any async function self-healing.
 
 [![npm](https://img.shields.io/npm/v/@helix-agent/core)](https://www.npmjs.com/package/@helix-agent/core)
-[![tests](https://img.shields.io/badge/tests-335%20passed-4ade80?style=flat-square)](https://github.com/adrianhihi/helix/actions)
+[![tests](https://img.shields.io/badge/tests-351%20passed-4ade80?style=flat-square)](https://github.com/adrianhihi/helix/actions)
 [![recovery](https://img.shields.io/badge/recovery-90.3%25-60a5fa?style=flat-square)]()
 [![license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)]()
 
 ## Install
 
 ```bash
+# One-line install
+curl -sSL https://helix-cnj.pages.dev/install.sh | bash
+
+# Or npm
 npm install @helix-agent/core
+
+# Python
+pip install helix-agent-sdk
+
+# Docker
+docker run -d -p 7842:7842 adrianhihi/helix-server
 ```
 
 ## Quick Start
@@ -76,7 +86,7 @@ wrap(fn, { mode: 'full' })     // All repairs including chain writes.
 | **Privy** | 7 | policy, gas sponsor, cross-chain, signing |
 | **Generic HTTP** | 3 | 429, 500, timeout |
 
-**31+ scenarios. 26 strategies. 4 platforms. 343+ tests.**
+**31+ scenarios. 26 strategies. 4 platforms. 351+ tests.**
 
 ## Python SDK
 
@@ -247,6 +257,38 @@ npx helix gc                                 # Garbage collection
 npx helix stats my-agent                     # Agent attribution
 npx helix dream                              # Gene Dream consolidation
 npx helix migrate                            # Schema migration check
+npx helix scan ./src                         # Scan for payment patterns
+```
+
+## Scan Your Codebase
+
+```bash
+# Find payment error patterns in your code
+npx helix scan ./src
+
+# JSON output
+npx helix scan ./src --json
+
+# GitHub Actions annotation format
+npx helix scan ./src --format github
+```
+
+## CI/CD Integration
+
+```yaml
+# .github/workflows/helix-scan.yml
+name: Helix Payment Safety
+on: [pull_request]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm install -g @helix-agent/core
+      - run: npx helix scan ./ --format github
+        continue-on-error: true
 ```
 
 ## Documentation
