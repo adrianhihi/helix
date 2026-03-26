@@ -290,7 +290,8 @@ export function createApiServer(opts: ApiServerOptions = {}) {
     // POST /api/federated/round
     if (path === '/api/federated/round' && req.method === 'POST') {
       try {
-        const body = JSON.parse(await readBody(req));
+        let body: any = {};
+        try { body = JSON.parse(await readBody(req)); } catch { /* empty body OK */ }
         const { FederatedLearner } = await import('./engine/federated.js');
         return json(res, await new FederatedLearner(geneMap.database, body?.epsilon || 1.0).federatedRound());
       } catch (e) { return json(res, { error: String(e) }, 500); }
