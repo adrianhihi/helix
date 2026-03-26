@@ -61,6 +61,8 @@ export { MetaLearner } from './engine/meta-learner.js';
 export type { MetaPattern } from './engine/meta-learner.js';
 export { checkConditions, getConditionMultiplier, updateGeneConditions } from './engine/conditional-genes.js';
 export type { GeneCondition } from './engine/conditional-genes.js';
+export { SafetyVerifier } from './engine/safety-verifier.js';
+export type { SafetyConstraint, VerifyContext, SafetyResult } from './engine/safety-verifier.js';
 export { AdversarialDefense } from './engine/adversarial.js';
 export type { ReputationInfo, VerificationResult, RollbackCheck } from './engine/adversarial.js';
 export { CausalGraph } from './engine/causal-graph.js';

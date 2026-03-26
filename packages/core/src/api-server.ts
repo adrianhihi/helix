@@ -268,6 +268,25 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       return json(res, { total: scored.length, avgComposite: avg, genes: scored });
     }
 
+    // GET /api/safety-constraints
+    if (path === '/api/safety-constraints' && req.method === 'GET') {
+      const { SafetyVerifier } = await import('./engine/safety-verifier.js');
+      return json(res, { constraints: new SafetyVerifier().getConstraints() });
+    }
+
+    // POST /api/verify-safety
+    if (path === '/api/verify-safety' && req.method === 'POST') {
+      try {
+        const body = JSON.parse(await readBody(req));
+        const { SafetyVerifier } = await import('./engine/safety-verifier.js');
+        return json(res, new SafetyVerifier().verify(body.strategy || '', body.overrides || {}, {
+          mode: body.mode || 'auto', originalArgs: body.originalArgs || [], strategy: body.strategy || '',
+          overrides: body.overrides || {}, costCeiling: body.costCeiling, allowedStrategies: body.allowedStrategies,
+          blockedStrategies: body.blockedStrategies, addressWhitelist: body.addressWhitelist,
+        }));
+      } catch (e) { return json(res, { error: String(e) }, 500); }
+    }
+
     // GET /api/adversarial-stats
     if (path === '/api/adversarial-stats' && req.method === 'GET') {
       const { AdversarialDefense } = await import('./engine/adversarial.js');
