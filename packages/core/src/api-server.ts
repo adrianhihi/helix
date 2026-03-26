@@ -10,6 +10,7 @@ import { GeneMap } from './engine/gene-map.js';
 import { defaultAdapters } from './platforms/index.js';
 import type { HelixMode } from './engine/types.js';
 import { GeneDream } from './engine/dream.js';
+import { getSchemaVersion, needsMigration, CURRENT_SCHEMA_VERSION } from './engine/migrations.js';
 
 function mapStrategyToAction(strategy: string): string {
   const m: Record<string, string> = {
@@ -123,7 +124,12 @@ export function createApiServer(opts: ApiServerOptions = {}) {
 
     // GET /health
     if (path === '/health' && req.method === 'GET') {
-      return json(res, { status: 'ok', version: '1.5.0', uptime: process.uptime() });
+      return json(res, { status: 'ok', version: '1.9.0', schemaVersion: getSchemaVersion(geneMap.database), targetSchemaVersion: CURRENT_SCHEMA_VERSION, uptime: process.uptime() });
+    }
+
+    // GET /schema
+    if (path === '/schema' && req.method === 'GET') {
+      return json(res, needsMigration(geneMap.database));
     }
 
     // GET /status

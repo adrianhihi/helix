@@ -20,6 +20,7 @@ function printHelp() {
     audit      Show repair audit log
     serve      Start REST API server
     dream      Run Gene Dream consolidation
+    migrate    Check and run schema migrations
     help       Show this help
 
   Examples:
@@ -147,6 +148,23 @@ function agentStats(agentId: string) {
         console.log('');
       }
       engine.getGeneMap().close();
+      break;
+    }
+    case 'migrate': {
+      const { needsMigration, runMigrations, CURRENT_SCHEMA_VERSION } = await import('./engine/migrations.js');
+      const mEng = createEngine({ mode: 'observe', agentId: 'cli', geneMapPath: ':memory:' } as WrapOptions);
+      const mDb = mEng.getGeneMap().database;
+      const check = needsMigration(mDb);
+      console.log(`\n  Schema: v${check.currentVersion} → v${check.targetVersion}`);
+      if (!check.needed) {
+        console.log('  ✓ Already up to date.\n');
+      } else {
+        console.log(`  ${check.pendingCount} migration(s) pending...`);
+        const applied = runMigrations(mDb, { decayOnMajorBump: true });
+        for (const m of applied) console.log(`  ✓ v${m.version}: ${m.description}`);
+        console.log('  Done.\n');
+      }
+      mEng.getGeneMap().close();
       break;
     }
     case 'dream': {

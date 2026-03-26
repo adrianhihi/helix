@@ -61,6 +61,8 @@ export { GeneDream } from './engine/dream.js';
 export type { DreamConfig, DreamStats, DreamEvent } from './engine/dream.js';
 export { IdleScheduler } from './engine/idle-scheduler.js';
 export type { IdleSchedulerConfig } from './engine/idle-scheduler.js';
+export { runMigrations, needsMigration, getSchemaVersion, CURRENT_SCHEMA_VERSION } from './engine/migrations.js';
+export type { Migration } from './engine/migrations.js';
 export { createApiServer } from './api-server.js';
 export type { ApiServerOptions } from './api-server.js';
 export { simulate, simulateAsync } from './testing.js';
