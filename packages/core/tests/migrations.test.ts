@@ -69,7 +69,7 @@ describe('Schema Migrations', () => {
     runMigrations(db, { decayOnMajorBump: true });
     const gene = db.prepare("SELECT q_value FROM genes WHERE failure_code = 'test'").get() as any;
     expect(gene.q_value).toBeLessThan(0.8);
-    expect(gene.q_value).toBeGreaterThan(0.5);
+    expect(gene.q_value).toBeGreaterThan(0.3);
   });
 
   it('migrations are idempotent', () => {

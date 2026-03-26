@@ -268,6 +268,18 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       return json(res, { total: scored.length, avgComposite: avg, genes: scored });
     }
 
+    // GET /api/adversarial-stats
+    if (path === '/api/adversarial-stats' && req.method === 'GET') {
+      const { AdversarialDefense } = await import('./engine/adversarial.js');
+      return json(res, new AdversarialDefense(geneMap.database).getStats());
+    }
+
+    // GET /api/reputation/:agentId
+    if (path.startsWith('/api/reputation/') && req.method === 'GET') {
+      const { AdversarialDefense } = await import('./engine/adversarial.js');
+      return json(res, new AdversarialDefense(geneMap.database).getReputation(decodeURIComponent(path.split('/')[3])));
+    }
+
     // GET /api/meta-patterns
     if (path === '/api/meta-patterns' && req.method === 'GET') {
       const { MetaLearner } = await import('./engine/meta-learner.js');
