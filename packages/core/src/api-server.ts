@@ -310,6 +310,21 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       return json(res, { gradients: g, count: g.length });
     }
 
+    // GET /api/weights
+    if (path === '/api/weights' && req.method === 'GET') {
+      const { AdaptiveWeights } = await import('./engine/adaptive-weights.js');
+      const aw = new AdaptiveWeights(geneMap.database);
+      return json(res, { weights: aw.getAllWeights(), defaults: aw.getDefaults() });
+    }
+    if (path.startsWith('/api/weights/') && !path.includes('history') && req.method === 'GET') {
+      const { AdaptiveWeights } = await import('./engine/adaptive-weights.js');
+      return json(res, { category: decodeURIComponent(path.split('/')[3]), weights: new AdaptiveWeights(geneMap.database).getWeights(decodeURIComponent(path.split('/')[3])) });
+    }
+    if (path === '/api/weights-history' && req.method === 'GET') {
+      const { AdaptiveWeights } = await import('./engine/adaptive-weights.js');
+      return json(res, { history: new AdaptiveWeights(geneMap.database).getHistory() });
+    }
+
     // POST /api/generate-strategies
     if (path === '/api/generate-strategies' && req.method === 'POST') {
       try {

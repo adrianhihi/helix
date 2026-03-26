@@ -14,7 +14,7 @@ export interface Migration {
   up: (db: Database.Database) => void;
 }
 
-export const CURRENT_SCHEMA_VERSION = 9;
+export const CURRENT_SCHEMA_VERSION = 10;
 
 export const migrations: Migration[] = [
   {
@@ -96,6 +96,14 @@ export const migrations: Migration[] = [
     description: 'Auto Strategy Generation',
     up: (db) => {
       db.exec(`CREATE TABLE IF NOT EXISTS generated_strategies (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, description TEXT NOT NULL, action TEXT NOT NULL, override_keys TEXT DEFAULT '[]', override_logic TEXT NOT NULL, confidence REAL DEFAULT 0, gap_code TEXT, validation_score REAL, validated_at INTEGER, active INTEGER DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+  {
+    version: 10,
+    description: 'Adaptive Evaluate Weights',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS adaptive_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, dimension TEXT NOT NULL, weight REAL NOT NULL, observations INTEGER DEFAULT 0, updated_at INTEGER DEFAULT (unixepoch()), UNIQUE(category, dimension))`);
+      db.exec(`CREATE TABLE IF NOT EXISTS weight_history (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, dimension TEXT NOT NULL, old_weight REAL NOT NULL, new_weight REAL NOT NULL, reason TEXT, recorded_at INTEGER DEFAULT (unixepoch()))`);
     },
   },
 ];
