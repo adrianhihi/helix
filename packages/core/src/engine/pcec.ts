@@ -31,6 +31,7 @@ import { NegativeKnowledge } from './negative-knowledge.js';
 import { MetaLearner } from './meta-learner.js';
 import { SafetyVerifier } from './safety-verifier.js';
 import { AdaptiveWeights } from './adaptive-weights.js';
+import { getConditionMultiplier, updateGeneConditions } from './conditional-genes.js';
 
 // Category C strategies that move funds — require 'full' mode
 const FUND_MOVEMENT_STRATEGIES = [
@@ -472,6 +473,9 @@ export class PcecEngine {
     for (const c of scored) {
       const penalty = this.negativeKnowledge.getPenalty(failure.code, failure.category, c.strategy);
       if (penalty < 1.0) c.score = Math.round(c.score * penalty);
+      // Conditional genes: context-aware multiplier
+      const condMul = getConditionMultiplier((c as any).conditions || '{}', (c as any).anti_conditions || '{}', { platform: failure.platform });
+      if (condMul < 1.0) c.score = Math.round(c.score * condMul);
     }
     // Apply adaptive weights (category-specific dimension weighting)
     try {
@@ -599,6 +603,8 @@ export class PcecEngine {
       this.metaLearner.learnPattern(error.message);
       // Adaptive weights: update dimension weights based on outcome
       this.adaptiveWeights.update(failure.category, { ...scores.dimensions, cost: scores.dimensions.costEfficiency } as any, true);
+      // Conditional genes: update conditions on success
+      try { const storedGene = this.geneMap.lookup(failure.code, failure.category); if (storedGene?.id) updateGeneConditions(this.geneMap.database, storedGene.id, { platform: failure.platform }, true); } catch {}
 
       bus.emit('gene', this.agentId, {
         code: failure.code, category: failure.category,
@@ -699,6 +705,8 @@ export class PcecEngine {
     try {
       const failScores = computeRepairScore({ perceiveSource: 'adapter', costUsd: winner.estimatedCostUsd, repairMs: totalMs, mode });
       this.adaptiveWeights.update(failure.category, { ...failScores.dimensions, cost: failScores.dimensions.costEfficiency } as any, false);
+      // Conditional genes: update on failure
+      try { const sg = this.geneMap.lookup(failure.code, failure.category); if (sg?.id) updateGeneConditions(this.geneMap.database, sg.id, { platform: failure.platform }, false); } catch {}
     } catch {}
 
     this.otel.endRepairSpan(span, { success: false, immune: false, strategy: winner.strategy, code: failure.code, category: failure.category, totalMs });
