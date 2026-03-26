@@ -22,6 +22,8 @@ Not a retry wrapper. A wrapper with a brain.
 ## Demo
 
 ![Helix Demo](assets/demo.gif)
+<img width="463" height="854" alt="image" src="https://github.com/user-attachments/assets/28824439-b819-4e83-85c7-4906b31e5560" />
+
 
 *Session expiry, nonce mismatch, gas errors — all diagnosed and repaired in <1ms.*
 
