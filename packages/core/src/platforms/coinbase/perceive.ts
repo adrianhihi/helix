@@ -42,6 +42,14 @@ export function coinbasePerceive(error: Error, _context?: Record<string, unknown
   if (msg.includes('network_connection_failed'))
     return { code: 'server-error', category: 'service', severity: 'high', platform, details: msg, timestamp: Date.now() };
 
+  // ── Gas / Fee Errors ──
+
+  if (msg.includes('underpriced') || msg.includes('replacement transaction'))
+    return { code: 'tx-reverted', category: 'gas' as any, severity: 'high', platform, details: msg, timestamp: Date.now() };
+
+  if (msg.toLowerCase().includes('gas') && (msg.toLowerCase().includes('too low') || msg.toLowerCase().includes('intrinsic gas')))
+    return { code: 'tx-reverted', category: 'gas' as any, severity: 'high', platform, details: msg, timestamp: Date.now() };
+
   // ── Paymaster / Bundler / ERC-4337 Errors ──
 
   if (msg.includes('GAS_ESTIMATION_ERROR') || msg.includes('-32004') || msg.includes('Gas estimation failed'))

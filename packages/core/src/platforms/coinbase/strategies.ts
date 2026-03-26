@@ -23,6 +23,13 @@ export function coinbaseConstruct(failure: FailureClassification): RepairCandida
     ];
   }
 
+  if (failure.platform === 'coinbase' && (failure.category as string) === 'gas') {
+    return [
+      { id: 'cb_speed_up', strategy: 'speed_up_transaction', description: 'Bump gas price by 30% for faster inclusion', estimatedCostUsd: 0.01, estimatedSpeedMs: 200, requirements: [], score: 0, successProbability: 0.88, platform: 'coinbase' },
+      { id: 'cb_fix_gas', strategy: 'fix_params', description: 'Auto-populate gas parameters', estimatedCostUsd: 0, estimatedSpeedMs: 100, requirements: [], score: 0, successProbability: 0.85, platform: 'coinbase' },
+    ];
+  }
+
   if (failure.platform === 'coinbase' && failure.category === 'network') {
     return [
       { id: 'cb_switch_net', strategy: 'switch_network', description: 'Switch to correct network for x402 payment', estimatedCostUsd: 0, estimatedSpeedMs: 200, requirements: ['rpcUrl'], score: 0, successProbability: 0.92, platform: 'coinbase' },
