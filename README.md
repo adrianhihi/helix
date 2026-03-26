@@ -3,6 +3,7 @@
 # Helix
 
 **Self-healing infrastructure for AI agent payments**
+**If this helped, please ⭐ — it helps us reach more developers.**
 
 [![npm](https://img.shields.io/npm/v/@helix-agent/core?style=flat-square&color=f0a030)](https://www.npmjs.com/package/@helix-agent/core)
 [![tests](https://img.shields.io/badge/tests-442%20passed-4ade80?style=flat-square)](https://github.com/adrianhihi/helix/actions)
