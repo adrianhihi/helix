@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: helix-agent-sdk
-Version: 0.1.4
+Version: 0.2.0
 Summary: Python SDK for Helix — self-healing infrastructure for AI agent payments
 Author: Helix Team
 License: MIT
