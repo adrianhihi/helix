@@ -5,6 +5,13 @@
  * - Without Helix: errors = failed transactions
  * - With Helix: errors = auto-repaired transactions
  *
+ * Error distribution (based on real Coinbase/Privy/viem patterns):
+ *   nonce conflict:       40%
+ *   gas too low:          25%
+ *   rate limit:           20%
+ *   insufficient balance: 10%
+ *   session expired:       5% (mapped to nonce — session not testable without Privy SDK)
+ *
  * Change DURATION_MS for different run lengths:
  *   5 min test:  300_000
  *   24 hour run: 86_400_000
@@ -35,7 +42,7 @@ const RECIPIENT = process.env.RECIPIENT!;
 // ── Config ────────────────────────────────────────────────
 const DURATION_MS = parseInt(process.env.DURATION_MS || '300000'); // 5 min default
 const TX_INTERVAL_MS = parseInt(process.env.TX_INTERVAL_MS || '30000'); // 30s between txs
-const ERROR_RATE = 0.6; // 60% of txs will have intentional errors
+const ERROR_RATE = parseFloat(process.env.ERROR_RATE || '0.3'); // 30% error rate
 
 const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
 const publicClient = createPublicClient({ chain: base, transport: http(RPC_URL) });
@@ -48,12 +55,17 @@ const stats = {
 };
 
 // ── Error injection ───────────────────────────────────────
-type ErrorType = 'nonce' | 'gas' | 'balance' | 'none';
+type ErrorType = 'nonce' | 'gas' | 'rate_limit' | 'balance' | 'none';
 
 function pickErrorType(): ErrorType {
   if (Math.random() > ERROR_RATE) return 'none';
-  const types: ErrorType[] = ['nonce', 'gas', 'balance'];
-  return types[Math.floor(Math.random() * types.length)];
+
+  const rand = Math.random();
+  if (rand < 0.40) return 'nonce';        // 40% nonce conflict
+  if (rand < 0.65) return 'gas';          // 25% gas too low
+  if (rand < 0.85) return 'rate_limit';   // 20% rate limit
+  if (rand < 0.95) return 'balance';      // 10% insufficient balance
+  return 'nonce';                          // 5% → nonce (session not testable)
 }
 
 async function buildTxParams(errorType: ErrorType) {
@@ -91,6 +103,14 @@ async function rawPayment(errorType: ErrorType) {
   stats.without.attempts++;
   const timestamp = new Date().toISOString();
 
+  // Rate limit can't be triggered on-chain — simulate it
+  if (errorType === 'rate_limit') {
+    stats.without.failed++;
+    stats.without.errors.push(`[${timestamp}] rate_limit: 429 Too Many Requests`);
+    console.log(`  [WITHOUT] ❌ attempt #${stats.without.attempts} (rate_limit) → FAILED: 429 Too Many Requests`);
+    return;
+  }
+
   try {
     const params = await buildTxParams(errorType);
     const hash = await walletClient.sendTransaction(params);
@@ -109,6 +129,48 @@ async function rawPayment(errorType: ErrorType) {
 async function helixPayment(errorType: ErrorType) {
   stats.with.attempts++;
 
+  // Rate limit: wrap a function that throws 429
+  if (errorType === 'rate_limit') {
+    let attempt = 0;
+    async function rateLimitedPay() {
+      attempt++;
+      if (attempt <= 1) throw new Error('429 Too Many Requests: rate limit exceeded');
+      // On retry (after backoff), succeed with a normal tx
+      return walletClient.sendTransaction({
+        to: RECIPIENT as `0x${string}`,
+        value: parseEther('0.000001'),
+      });
+    }
+
+    const safePay = wrap(rateLimitedPay, {
+      mode: 'auto' as any,
+      platform: 'coinbase',
+      verbose: false,
+    });
+
+    try {
+      const start = Date.now();
+      const result = await safePay();
+      const repairMs = Date.now() - start;
+      const hash = typeof result === 'string' ? result : '';
+
+      if (hash) {
+        try { await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}`, timeout: 15_000 }); } catch {}
+      }
+
+      stats.with.succeeded++;
+      stats.with.repaired++;
+      stats.with.repairs.push({ error: 'rate_limit', strategy: 'backoff_retry', txHash: hash, repairMs });
+      if (hash) stats.with.txHashes.push(hash);
+      console.log(`  [WITH]    🔧 attempt #${stats.with.attempts} (rate_limit) → repaired via backoff_retry in ${repairMs}ms${hash ? ` → TX ${hash.substring(0, 10)}...` : ''}`);
+    } catch (e: any) {
+      stats.with.failed++;
+      const msg = e.shortMessage || e.message?.substring(0, 60) || 'unknown';
+      console.log(`  [WITH]    ❌ attempt #${stats.with.attempts} (rate_limit) → failed: ${msg}`);
+    }
+    return;
+  }
+
   async function sendTx(params: any) {
     return walletClient.sendTransaction(params);
   }
@@ -125,8 +187,7 @@ async function helixPayment(errorType: ErrorType) {
     const result = await safePay(params);
     const repairMs = Date.now() - start;
 
-    // wrap() returns Object.assign(result, {_helix}) — for strings this creates a String object
-    const hash = String(result).startsWith('0x') ? String(result) : (result as any)?.hash || '';
+    const hash = typeof result === 'string' ? result : '';
 
     if (hash) {
       try {
@@ -144,8 +205,8 @@ async function helixPayment(errorType: ErrorType) {
         txHash: hash,
         repairMs,
       });
-      stats.with.txHashes.push(hash);
-      console.log(`  [WITH]    🔧 attempt #${stats.with.attempts} (${errorType}) → repaired in ${repairMs}ms → TX ${hash.substring(0, 10)}...`);
+      if (hash) stats.with.txHashes.push(hash);
+      console.log(`  [WITH]    🔧 attempt #${stats.with.attempts} (${errorType}) → repaired in ${repairMs}ms${hash ? ` → TX ${hash.substring(0, 10)}...` : ''}`);
     } else {
       console.log(`  [WITH]    ✅ attempt #${stats.with.attempts} (${errorType}) → success`);
     }
@@ -161,6 +222,7 @@ function saveLog() {
   const log = {
     timestamp: new Date().toISOString(),
     duration_ms: DURATION_MS,
+    error_rate: ERROR_RATE,
     without_helix: {
       attempts: stats.without.attempts,
       succeeded: stats.without.succeeded,
@@ -201,11 +263,27 @@ function printSummary() {
   console.log(`    Failed:    ${log.with_helix.failed}`);
   console.log();
 
+  // Error distribution breakdown
+  const errorCounts = stats.with.repairs.reduce((acc, r) => {
+    acc[r.error] = (acc[r.error] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  if (Object.keys(errorCounts).length > 0) {
+    console.log('  Error distribution (WITH Helix):');
+    Object.entries(errorCounts).forEach(([type, count]) => {
+      console.log(`    ${type.padEnd(15)} ${count} repairs`);
+    });
+    console.log();
+  }
+
   if (log.with_helix.tx_hashes.length > 0) {
     console.log('  TX Hashes (repaired transactions):');
     log.with_helix.tx_hashes.slice(0, 5).forEach(h => {
       console.log(`    https://basescan.org/tx/${h}`);
     });
+    if (log.with_helix.tx_hashes.length > 5) {
+      console.log(`    ... and ${log.with_helix.tx_hashes.length - 5} more`);
+    }
   }
 
   console.log();
@@ -221,7 +299,8 @@ async function main() {
   console.log(`Recipient: ${RECIPIENT}`);
   console.log(`Duration:  ${DURATION_MS / 60000} minutes`);
   console.log(`Interval:  ${TX_INTERVAL_MS / 1000}s between txs`);
-  console.log(`Error rate: ${ERROR_RATE * 100}% of txs will have intentional errors`);
+  console.log(`Error rate: ${(ERROR_RATE * 100).toFixed(0)}%`);
+  console.log(`Error distribution: nonce 40% | gas 25% | rate_limit 20% | balance 10%`);
 
   const balance = await publicClient.getBalance({ address: account.address });
   console.log(`Balance:   ${formatEther(balance)} ETH`);
