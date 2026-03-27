@@ -6,10 +6,13 @@ export function coinbasePerceive(error: Error, _context?: Record<string, unknown
 
   // ── CDP API / Server Wallet Errors ──
 
+  if (msg.toLowerCase().includes('unauthorized') || (msg.toLowerCase().includes('api key') && (msg.includes('invalid') || msg.includes('expired'))))
+    return { code: 'rate-limited', category: 'auth', severity: 'medium', platform, details: msg, timestamp: Date.now() };
+
   if (msg.includes('rate_limit_exceeded') || (msg.includes('429') && msg.includes('cdp')))
     return { code: 'rate-limited', category: 'auth', severity: 'medium', platform, details: msg, timestamp: Date.now() };
 
-  if (msg.includes('faucet_limit_exceeded') || (msg.includes('faucet') && msg.includes('limit')))
+  if (msg.includes('faucet_limit_exceeded') || (msg.toLowerCase().includes('faucet') && msg.toLowerCase().includes('limit')))
     return { code: 'rate-limited', category: 'auth', severity: 'low', platform, details: msg, timestamp: Date.now() };
 
   if (msg.includes('transfer_quote_expired') || (msg.includes('quote') && msg.includes('expired')))

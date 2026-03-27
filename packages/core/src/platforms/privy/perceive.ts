@@ -30,6 +30,18 @@ export function privyPerceive(error: Error, _context?: Record<string, unknown>):
   if (msg.includes('gas limit exceeded') || msg.includes('gas limit'))
     return { code: 'gas-limit-exceeded', category: 'gas', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
 
+  // Rate limit (Privy SDK includes status code in message: "429 Rate limit exceeded")
+  if (msg.includes('429') || msg.toLowerCase().includes('rate limit'))
+    return { code: 'rate-limited', category: 'auth', severity: 'medium', platform: 'privy', details: msg, timestamp: Date.now() };
+
+  // Privy server errors (500)
+  if (msg.includes('500') || msg.toLowerCase().includes('internal server error'))
+    return { code: 'server-error', category: 'service', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
+
+  // Insufficient funds (broader pattern — Privy SDK format: "400 Bad request: insufficient funds...")
+  if (msg.includes('insufficient funds'))
+    return { code: 'payment-insufficient', category: 'balance', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
+
   // #NEW-1: Insufficient wallet balance (not gas, actual tx value)
   if (msg.includes('insufficient funds') && msg.includes('transaction') && !msg.includes('gas'))
     return { code: 'payment-insufficient', category: 'balance', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };

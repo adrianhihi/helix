@@ -1,6 +1,12 @@
 import type { FailureClassification, RepairCandidate } from '../../engine/types.js';
 
 export function coinbaseConstruct(failure: FailureClassification): RepairCandidate[] {
+  if (failure.platform === 'coinbase' && failure.category === 'auth') {
+    return [
+      { id: 'cb_backoff', strategy: 'backoff_retry', description: 'Exponential backoff and retry after rate limit', estimatedCostUsd: 0, estimatedSpeedMs: 500, requirements: [], score: 0, successProbability: 0.90, platform: 'coinbase' },
+    ];
+  }
+
   if (failure.category === 'policy') {
     return [
       { id: 'cb_split_userop', strategy: 'split_transaction', description: 'Split userOperation into smaller ops under spend limit', estimatedCostUsd: 0.02, estimatedSpeedMs: 500, requirements: [], score: 0, successProbability: 0.85, platform: 'coinbase' },

@@ -120,7 +120,10 @@ describe('Coinbase perceive', () => {
     expect(coinbasePerceive(new Error('some unrelated application error'))).toBeNull();
   });
 
-  it('returns null for unauthorized', () => {
-    expect(coinbasePerceive(new Error('unauthorized'))).toBeNull();
+  it('classifies unauthorized as auth', () => {
+    const r = coinbasePerceive(new Error('unauthorized'));
+    expect(r).not.toBeNull();
+    expect(r!.code).toBe('rate-limited');
+    expect(r!.category).toBe('auth');
   });
 });

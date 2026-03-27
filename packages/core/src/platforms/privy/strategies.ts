@@ -9,6 +9,12 @@ export function privyConstruct(failure: FailureClassification): RepairCandidate[
     ];
   }
 
+  if (failure.platform === 'privy' && failure.category === 'auth' && failure.code !== 'wallet-locked') {
+    return [
+      { id: 'privy_backoff', strategy: 'backoff_retry', description: 'Exponential backoff after rate limit', estimatedCostUsd: 0, estimatedSpeedMs: 500, requirements: [], score: 0, successProbability: 0.90, platform: 'privy' },
+    ];
+  }
+
   // For categories that overlap with Tempo (signature, balance, network),
   // Privy can add platform-specific candidates alongside Tempo's:
   if (failure.platform === 'privy' && failure.category === 'signature') {
@@ -42,6 +48,12 @@ export function privyConstruct(failure: FailureClassification): RepairCandidate[
   if (failure.platform === 'privy' && failure.code === 'gas-limit-exceeded') {
     return [
       { id: 'privy_speed_gas', strategy: 'speed_up_transaction', description: 'Increase gas limit', estimatedCostUsd: 0.01, estimatedSpeedMs: 150, requirements: [], score: 0, successProbability: 0.84, platform: 'privy' },
+    ];
+  }
+
+  if (failure.platform === 'privy' && failure.category === 'service') {
+    return [
+      { id: 'privy_retry', strategy: 'retry', description: 'Retry after Privy server error', estimatedCostUsd: 0, estimatedSpeedMs: 200, requirements: [], score: 0, successProbability: 0.85, platform: 'privy' },
     ];
   }
 
