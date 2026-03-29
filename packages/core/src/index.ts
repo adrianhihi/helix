@@ -2,8 +2,8 @@
 export { wrap, createEngine, shutdown } from './engine/wrap.js';
 
 // ── Self-Refine ──
-export { reflect, enrichContext, shouldContinueRefining } from './engine/self-refine.js';
-export type { Reflection, RefinementContext, AttemptRecord } from './engine/self-refine.js';
+export { refine, filterCandidates, createRefinementContext, recordAttempt } from './engine/self-refine.js';
+export type { AttemptRecord, RefinementContext, RefinementResult } from './engine/self-refine.js';
 
 // ── Types ──
 export type {

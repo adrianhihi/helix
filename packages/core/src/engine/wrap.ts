@@ -6,7 +6,7 @@ import { DEFAULT_CONFIG } from './types.js';
 import { defaultAdapters } from '../platforms/index.js';
 import { detectSignature, applyOverrides } from './auto-detect.js';
 import { createLogger } from './logger.js';
-import { reflect, enrichContext, shouldContinueRefining, type AttemptRecord, type RefinementContext } from './self-refine.js';
+import { refine, createRefinementContext, recordAttempt, filterCandidates } from './self-refine.js';
 
 let _defaultEngine: PcecEngine | null = null;
 let _defaultGeneMap: GeneMap | null = null;
@@ -54,8 +54,8 @@ export function wrap<TArgs extends unknown[], TResult>(
 
     let currentArgs = args;
     let lastRepairResult: RepairResult | null = null;
-    const attemptHistory: AttemptRecord[] = [];
-    let enrichedErrorMsg: string | null = null;
+    const refineCtx = createRefinementContext((args as any)?.[0]?.toString?.() ?? '', maxRetries);
+    let lastStrategy: string | null = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -109,43 +109,18 @@ export function wrap<TArgs extends unknown[], TResult>(
         // Business verify failure — exit immediately, don't re-enter PCEC
         if ((error as any)?._helix?.verifyFailed || (error as any)?._helixVerifyError) throw error;
 
-        // Self-Refine: mark last attempt as failed and reflect
-        if (attemptHistory.length > 0) {
-          const lastRecord = attemptHistory[attemptHistory.length - 1];
-          if (!lastRecord.failed) {
-            const errMsg = (error as any)?.shortMessage ?? (error as Error).message ?? String(error);
-            lastRecord.failed = true;
-            lastRecord.failureReason = errMsg.substring(0, 200);
-            lastRecord.durationMs = Date.now() - startTime;
+        // Self-Refine: record failed attempt and check if we should continue
+        if (lastStrategy) {
+          const errMsg = (error as any)?.shortMessage ?? (error as Error).message ?? String(error);
+          recordAttempt(refineCtx, lastStrategy, true, errMsg.substring(0, 200), Date.now() - startTime);
+          lastStrategy = null;
 
-            const reflection = reflect(
-              (error as Error).message ?? String(error),
-              lastRecord.strategy,
-              lastRecord.failureReason ?? 'unknown',
-              attemptHistory,
-            );
-            lastRecord.reflection = reflection.whyFailed;
-
-            // Enrich for next attempt
-            enrichedErrorMsg = enrichContext((error as Error).message ?? String(error), reflection, attemptHistory);
-
-            // Check if we should stop
-            const refineCtx: RefinementContext = {
-              originalError: (error as Error).message ?? String(error),
-              attemptHistory,
-              currentAttempt: attempt,
-              maxAttempts: maxRetries,
-            };
-            if (!shouldContinueRefining(refineCtx)) {
-              log.error('Self-Refine: giving up after reflection', { attempts: attemptHistory.length, lastStrategy: lastRecord.strategy });
-              throw error;
-            }
-
-            log.info(`Self-Refine: ${lastRecord.strategy} failed → ${reflection.suggestedApproach}`, {
-              reflection: reflection.whyFailed.substring(0, 80),
-              avoid: reflection.whatToAvoid,
-            });
+          const refinement = refine(refineCtx);
+          if (!refinement.shouldContinue) {
+            log.error(`Self-Refine: stopping — ${refinement.reason}`, { attempts: refineCtx.attemptHistory.length });
+            throw error;
           }
+          log.info(`Self-Refine: ${refinement.reason}`);
         }
 
         if (attempt === maxRetries) {
@@ -161,19 +136,14 @@ export function wrap<TArgs extends unknown[], TResult>(
           log.info('Payment failed, engaging PCEC', { attempt: attempt + 1, maxRetries });
           bus.emit('retry', agentId, { attempt: attempt + 1, maxRetries });
 
-          // Self-Refine: use enriched error message on retries
-          const diagError = enrichedErrorMsg
-            ? new Error(enrichedErrorMsg)
-            : wrappedError;
+          // Self-Refine: get exclude list from refinement context
+          const refinement = refine(refineCtx);
 
-          // Self-Refine: block strategies that already failed
-          const failedStrategies = attemptHistory.filter(h => h.failed).map(h => h.strategy);
-
-          const result: RepairResult = await engine.repair(diagError, {
+          const result: RepairResult = await engine.repair(wrappedError, {
             ...options?.context,
             chainId: (error as any)?.chain?.id,
             walletAddress: (error as any)?.account?.address,
-            _avoidStrategies: failedStrategies.length > 0 ? failedStrategies : undefined,
+            _avoidStrategies: refinement.excludeStrategies.length > 0 ? refinement.excludeStrategies : undefined,
           });
           lastRepairResult = result;
 
@@ -191,13 +161,12 @@ export function wrap<TArgs extends unknown[], TResult>(
           const strategy = result.winner?.strategy ?? result.gene?.strategy;
           if (!strategy) {
             log.warn('No viable strategy');
-            attemptHistory.push({ attempt, strategy: 'none', failed: true, failureReason: 'no viable strategy', durationMs: Date.now() - startTime });
+            recordAttempt(refineCtx, 'none', true, 'no viable strategy', Date.now() - startTime);
             continue; // next attempt
           }
 
-          // Self-Refine: track this attempt's strategy (will be marked failed if next iteration catches)
-          const currentAttemptRecord: AttemptRecord = { attempt, strategy, failed: false, durationMs: 0 };
-          attemptHistory.push(currentAttemptRecord);
+          // Self-Refine: track which strategy we're about to try
+          lastStrategy = strategy;
 
           log.info(result.immune ? `IMMUNE via ${strategy}` : `REPAIRED via ${strategy}`, { ms: result.totalMs, immune: result.immune });
 

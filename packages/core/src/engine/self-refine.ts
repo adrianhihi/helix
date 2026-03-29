@@ -1,14 +1,23 @@
 /**
- * Self-Refine: Iterative refinement with failure reflection.
+ * Self-Refine: Iterative refinement with failure feedback.
  *
  * Paper: Self-Refine (2303.17651)
  *
- * When a repair strategy fails, instead of blind retry:
- * 1. Reflect: analyze WHY the strategy failed
- * 2. Enrich: add failure context to the next diagnosis
- * 3. Re-diagnose: with richer context, pick a different strategy
- * 4. Retry: execute the new strategy
+ * 100% generic — no domain-specific logic.
+ * Works by feeding failure information back into existing scoring systems
+ * (NegativeKnowledge, AdaptiveWeights, Q-values).
+ *
+ * The framework doesn't know what "nonce" or "gas" is.
+ * It only knows: "strategy X was tried and failed with reason Y."
  */
+
+export interface AttemptRecord {
+  attempt: number;
+  strategy: string;
+  failed: boolean;
+  failureReason?: string;
+  durationMs: number;
+}
 
 export interface RefinementContext {
   originalError: string;
@@ -17,164 +26,130 @@ export interface RefinementContext {
   maxAttempts: number;
 }
 
-export interface AttemptRecord {
-  attempt: number;
-  strategy: string;
-  failed: boolean;
-  failureReason?: string;
-  durationMs: number;
-  reflection?: string;
-}
-
-export interface Reflection {
-  whyFailed: string;
-  whatToAvoid: string[];
-  suggestedApproach: string;
-  confidence: number;
+export interface RefinementResult {
+  shouldContinue: boolean;
+  excludeStrategies: string[];
+  enrichedError: string;
+  reason: string;
 }
 
 /**
- * Generate a reflection on why a repair strategy failed.
+ * Analyze the current state of refinement and decide what to do next.
  */
-export function reflect(
-  originalError: string,
-  strategy: string,
-  failureReason: string,
-  history: AttemptRecord[],
-): Reflection {
-  const triedStrategies = history.map(h => h.strategy);
-  return analyzeFailurePattern(strategy, failureReason, triedStrategies);
-}
+export function refine(ctx: RefinementContext): RefinementResult {
+  const { attemptHistory, currentAttempt, maxAttempts, originalError } = ctx;
 
-function analyzeFailurePattern(
-  strategy: string,
-  failureReason: string,
-  triedStrategies: string[],
-): Reflection {
-  const reason = failureReason.toLowerCase();
-
-  // Nonce strategies failing
-  if (strategy === 'refresh_nonce' && reason.includes('nonce')) {
+  // Rule 1: Hard limit on attempts
+  if (currentAttempt >= maxAttempts) {
     return {
-      whyFailed: 'Nonce refresh failed — likely mempool congestion or concurrent transactions',
-      whatToAvoid: ['refresh_nonce'],
-      suggestedApproach: 'remove_and_resubmit',
-      confidence: 0.7,
+      shouldContinue: false,
+      excludeStrategies: [],
+      enrichedError: originalError,
+      reason: `Max attempts reached (${maxAttempts})`,
     };
   }
 
-  if (strategy === 'remove_and_resubmit' && reason.includes('nonce')) {
+  // Rule 2: No history yet — first attempt, just proceed
+  if (attemptHistory.length === 0) {
     return {
-      whyFailed: 'Even remove_and_resubmit failed — nonce is being contested by another tx',
-      whatToAvoid: ['refresh_nonce', 'remove_and_resubmit'],
-      suggestedApproach: 'backoff_retry',
-      confidence: 0.6,
+      shouldContinue: true,
+      excludeStrategies: [],
+      enrichedError: originalError,
+      reason: 'First attempt',
     };
   }
 
-  // Gas strategies failing
-  if (strategy === 'speed_up_transaction' && (reason.includes('gas') || reason.includes('underpriced'))) {
+  // Collect all failed strategies
+  const failedStrategies = attemptHistory
+    .filter(a => a.failed)
+    .map(a => a.strategy);
+
+  const excludeStrategies = [...new Set(failedStrategies)];
+
+  // Rule 3: 3+ unique strategies all failed — give up
+  const uniqueFailed = new Set(failedStrategies);
+  if (uniqueFailed.size >= 3) {
     return {
-      whyFailed: 'Gas bump of 1.3x was not enough — network is highly congested',
-      whatToAvoid: ['speed_up_transaction'],
-      suggestedApproach: 'backoff_retry',
-      confidence: 0.6,
+      shouldContinue: false,
+      excludeStrategies,
+      enrichedError: originalError,
+      reason: `${uniqueFailed.size} different strategies all failed — escalating`,
     };
   }
 
-  // Balance strategies failing
-  if (strategy === 'reduce_request' && reason.includes('insufficient')) {
+  // Rule 4: Same strategy failed 2+ times (stuck in a loop) — give up
+  if (failedStrategies.length >= 2 && uniqueFailed.size === 1) {
     return {
-      whyFailed: 'Even reduced amount exceeds balance — account is nearly empty',
-      whatToAvoid: ['reduce_request'],
-      suggestedApproach: 'split_transaction',
-      confidence: 0.5,
+      shouldContinue: false,
+      excludeStrategies,
+      enrichedError: originalError,
+      reason: `Strategy "${failedStrategies[0]}" failed ${failedStrategies.length} times — no alternative found`,
     };
   }
 
-  if (strategy === 'split_transaction' && reason.includes('insufficient')) {
-    return {
-      whyFailed: 'Split transaction still failing — truly insufficient funds',
-      whatToAvoid: ['reduce_request', 'split_transaction'],
-      suggestedApproach: 'hold_and_notify',
-      confidence: 0.8,
-    };
-  }
+  // Build enriched error with failure context
+  const failureSummary = attemptHistory
+    .filter(a => a.failed)
+    .map(a => `${a.strategy}:failed`)
+    .join(', ');
 
-  // Rate limit strategies failing
-  if (strategy === 'backoff_retry' && (reason.includes('429') || reason.includes('rate'))) {
-    return {
-      whyFailed: 'Backoff delay was not long enough — still rate limited',
-      whatToAvoid: [],
-      suggestedApproach: 'backoff_retry',
-      confidence: 0.7,
-    };
-  }
+  const enrichedError = `${originalError} [tried: ${failureSummary}]`;
 
-  // Session strategies failing
-  if (strategy === 'renew_session' && (reason.includes('session') || reason.includes('auth') || reason.includes('token'))) {
-    return {
-      whyFailed: 'Session renewal failed — token refresh endpoint may be down or credentials invalid',
-      whatToAvoid: ['renew_session'],
-      suggestedApproach: 'backoff_retry',
-      confidence: 0.5,
-    };
-  }
-
-  // Same strategy tried multiple times
-  if (triedStrategies.filter(s => s === strategy).length >= 2) {
-    return {
-      whyFailed: `Strategy "${strategy}" has been tried ${triedStrategies.filter(s => s === strategy).length} times — it's not working for this error`,
-      whatToAvoid: [strategy],
-      suggestedApproach: 'hold_and_notify',
-      confidence: 0.8,
-    };
-  }
-
-  // Generic fallback
   return {
-    whyFailed: `Strategy "${strategy}" failed: ${failureReason.substring(0, 100)}`,
-    whatToAvoid: [strategy],
-    suggestedApproach: triedStrategies.includes('backoff_retry') ? 'hold_and_notify' : 'backoff_retry',
-    confidence: 0.4,
+    shouldContinue: true,
+    excludeStrategies,
+    enrichedError,
+    reason: `Attempt ${currentAttempt + 1}: excluding [${excludeStrategies.join(', ')}]`,
   };
 }
 
 /**
- * Build enriched error context from reflection.
+ * Filter candidates by removing strategies that already failed.
+ * If ALL candidates would be filtered, return the original list
+ * (better to retry a failed strategy than have no options).
  */
-export function enrichContext(
-  originalError: string,
-  reflection: Reflection,
-  history: AttemptRecord[],
-): string {
-  const parts = [originalError];
+export function filterCandidates<T extends { strategy: string }>(
+  candidates: T[],
+  excludeStrategies: string[],
+): T[] {
+  if (excludeStrategies.length === 0) return candidates;
 
-  if (history.length > 0) {
-    const failed = history.map(h => `${h.strategy}(failed: ${h.failureReason?.substring(0, 50) || 'unknown'})`);
-    parts.push(`[Previously tried: ${failed.join(', ')}]`);
-  }
+  const filtered = candidates.filter(c => !excludeStrategies.includes(c.strategy));
 
-  parts.push(`[Reflection: ${reflection.whyFailed}]`);
-
-  if (reflection.whatToAvoid.length > 0) {
-    parts.push(`[Avoid: ${reflection.whatToAvoid.join(', ')}]`);
-  }
-
-  return parts.join(' ');
+  return filtered.length > 0 ? filtered : candidates;
 }
 
 /**
- * Determine if we should continue refining or give up.
+ * Create a new RefinementContext for tracking attempts.
  */
-export function shouldContinueRefining(ctx: RefinementContext): boolean {
-  if (ctx.currentAttempt >= ctx.maxAttempts) return false;
+export function createRefinementContext(
+  errorMessage: string,
+  maxAttempts = 3,
+): RefinementContext {
+  return {
+    originalError: errorMessage,
+    attemptHistory: [],
+    currentAttempt: 0,
+    maxAttempts,
+  };
+}
 
-  const lastAttempt = ctx.attemptHistory[ctx.attemptHistory.length - 1];
-  if (lastAttempt?.reflection?.includes('escalate')) return false;
-
-  const uniqueStrategies = new Set(ctx.attemptHistory.map(h => h.strategy));
-  if (uniqueStrategies.size >= 3 && ctx.attemptHistory.every(h => h.failed)) return false;
-
-  return true;
+/**
+ * Record an attempt in the refinement context.
+ */
+export function recordAttempt(
+  ctx: RefinementContext,
+  strategy: string,
+  failed: boolean,
+  failureReason?: string,
+  durationMs = 0,
+): void {
+  ctx.attemptHistory.push({
+    attempt: ctx.currentAttempt,
+    strategy,
+    failed,
+    failureReason,
+    durationMs,
+  });
+  ctx.currentAttempt++;
 }

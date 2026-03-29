@@ -427,16 +427,14 @@ export class PcecEngine {
     // Self-Refine: avoid strategies that already failed in this repair session
     const avoidStrategies = (context as any)?._avoidStrategies as string[] | undefined;
     if (avoidStrategies?.length) {
-      const beforeCount = candidates.length;
-      candidates = candidates.filter(c => {
-        if (avoidStrategies.includes(c.strategy)) {
-          skippedStrategies.push(`${c.strategy} (Self-Refine: already failed)`);
-          return false;
-        }
-        return true;
-      });
-      // If ALL candidates were filtered, restore them (better to retry a failed strategy than give up)
-      if (candidates.length === 0 && beforeCount > 0) {
+      const before = candidates.length;
+      candidates = candidates.filter(c => !avoidStrategies.includes(c.strategy));
+      if (candidates.length < before) {
+        const excluded = avoidStrategies.filter(s => !candidates.some(c => c.strategy === s));
+        excluded.forEach(s => skippedStrategies.push(`${s} (Self-Refine: already failed)`));
+      }
+      // If ALL candidates were filtered, restore originals
+      if (candidates.length === 0 && before > 0) {
         candidates = this.constructCandidates(failure);
       }
     }

@@ -1,121 +1,166 @@
 import { describe, test, expect } from 'vitest';
-import { reflect, enrichContext, shouldContinueRefining, type AttemptRecord, type RefinementContext } from '../src/engine/self-refine.js';
+import { refine, filterCandidates, createRefinementContext, recordAttempt } from '../src/engine/self-refine.js';
 
-describe('Self-Refine', () => {
+describe('Self-Refine (Generic)', () => {
 
-  // reflect()
-  test('reflects on nonce failure → suggests remove_and_resubmit', () => {
-    const r = reflect('nonce too low', 'refresh_nonce', 'nonce still too low', []);
-    expect(r.whyFailed.toLowerCase()).toContain('nonce');
-    expect(r.suggestedApproach).toBe('remove_and_resubmit');
-    expect(r.whatToAvoid).toContain('refresh_nonce');
+  // refine()
+  test('first attempt — shouldContinue true, no exclusions', () => {
+    const ctx = createRefinementContext('some error', 3);
+    const result = refine(ctx);
+    expect(result.shouldContinue).toBe(true);
+    expect(result.excludeStrategies).toEqual([]);
+    expect(result.reason).toBe('First attempt');
   });
 
-  test('reflects on gas failure → suggests backoff', () => {
-    const r = reflect('gas too low', 'speed_up_transaction', 'still underpriced gas', []);
-    expect(r.whyFailed.toLowerCase()).toContain('gas');
-    expect(r.suggestedApproach).toBe('backoff_retry');
+  test('after 1 failure — excludes failed strategy', () => {
+    const ctx = createRefinementContext('some error', 3);
+    recordAttempt(ctx, 'strategyA', true, 'it broke');
+    const result = refine(ctx);
+    expect(result.shouldContinue).toBe(true);
+    expect(result.excludeStrategies).toContain('strategyA');
   });
 
-  test('reflects on balance failure after reduce → suggests split', () => {
-    const r = reflect('insufficient balance', 'reduce_request', 'still insufficient funds', []);
-    expect(r.suggestedApproach).toBe('split_transaction');
+  test('after 2 different failures — still continues', () => {
+    const ctx = createRefinementContext('some error', 5);
+    recordAttempt(ctx, 'strategyA', true, 'failed');
+    recordAttempt(ctx, 'strategyB', true, 'also failed');
+    const result = refine(ctx);
+    expect(result.shouldContinue).toBe(true);
+    expect(result.excludeStrategies).toContain('strategyA');
+    expect(result.excludeStrategies).toContain('strategyB');
   });
 
-  test('reflects on split failure → suggests escalate', () => {
-    const r = reflect('insufficient balance', 'split_transaction', 'still insufficient funds', []);
-    expect(r.suggestedApproach).toBe('hold_and_notify');
+  test('after 3 different failures — stops (escalate)', () => {
+    const ctx = createRefinementContext('some error', 5);
+    recordAttempt(ctx, 'strategyA', true, 'failed');
+    recordAttempt(ctx, 'strategyB', true, 'failed');
+    recordAttempt(ctx, 'strategyC', true, 'failed');
+    const result = refine(ctx);
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reason).toContain('3');
+    expect(result.reason).toContain('escalating');
   });
 
-  test('reflects on session failure → suggests backoff', () => {
-    const r = reflect('session expired', 'renew_session', 'token refresh failed session', []);
-    expect(r.suggestedApproach).toBe('backoff_retry');
+  test('same strategy fails 2x — stops (stuck)', () => {
+    const ctx = createRefinementContext('some error', 5);
+    recordAttempt(ctx, 'strategyA', true, 'failed');
+    recordAttempt(ctx, 'strategyA', true, 'failed again');
+    const result = refine(ctx);
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reason).toContain('strategyA');
   });
 
-  test('detects same strategy tried 2+ times', () => {
-    const history: AttemptRecord[] = [
-      { attempt: 0, strategy: 'retry', failed: true, failureReason: 'still failing', durationMs: 100 },
-      { attempt: 1, strategy: 'retry', failed: true, failureReason: 'still failing', durationMs: 100 },
+  test('max attempts reached — stops', () => {
+    const ctx = createRefinementContext('some error', 2);
+    recordAttempt(ctx, 'strategyA', true, 'failed');
+    recordAttempt(ctx, 'strategyB', true, 'failed');
+    const result = refine(ctx);
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reason).toContain('Max attempts');
+  });
+
+  test('enriched error contains failure history', () => {
+    const ctx = createRefinementContext('original error', 5);
+    recordAttempt(ctx, 'strategyA', true, 'reason1');
+    const result = refine(ctx);
+    expect(result.enrichedError).toContain('original error');
+    expect(result.enrichedError).toContain('strategyA');
+    expect(result.enrichedError).toContain('failed');
+  });
+
+  test('successful attempt does not exclude strategy', () => {
+    const ctx = createRefinementContext('some error', 5);
+    recordAttempt(ctx, 'strategyA', false);
+    const result = refine(ctx);
+    expect(result.shouldContinue).toBe(true);
+    expect(result.excludeStrategies).not.toContain('strategyA');
+  });
+
+  // filterCandidates()
+  test('filters out excluded strategies', () => {
+    const candidates = [
+      { strategy: 'A', score: 0.9 },
+      { strategy: 'B', score: 0.7 },
+      { strategy: 'C', score: 0.5 },
     ];
-    const r = reflect('some error', 'retry', 'still failing', history);
-    expect(r.whatToAvoid).toContain('retry');
-    expect(r.confidence).toBeGreaterThanOrEqual(0.7);
+    const filtered = filterCandidates(candidates, ['A']);
+    expect(filtered.length).toBe(2);
+    expect(filtered.map(c => c.strategy)).toEqual(['B', 'C']);
   });
 
-  test('generic fallback for unknown pattern', () => {
-    const r = reflect('weird error xyz', 'some_strategy', 'unknown failure', []);
-    expect(r.whyFailed).toContain('some_strategy');
-    expect(r.confidence).toBeLessThan(0.6);
-  });
-
-  // enrichContext()
-  test('enriches error with failure history', () => {
-    const history: AttemptRecord[] = [
-      { attempt: 0, strategy: 'retry', failed: true, failureReason: 'timeout', durationMs: 100 },
+  test('returns original list if all would be filtered', () => {
+    const candidates = [
+      { strategy: 'A', score: 0.9 },
     ];
-    const reflection = { whyFailed: 'timeout', whatToAvoid: ['retry'], suggestedApproach: 'backoff_retry', confidence: 0.5 };
-    const enriched = enrichContext('original error', reflection, history);
-
-    expect(enriched).toContain('original error');
-    expect(enriched).toContain('Previously tried');
-    expect(enriched).toContain('retry');
-    expect(enriched).toContain('Reflection');
-    expect(enriched).toContain('Avoid');
+    const filtered = filterCandidates(candidates, ['A']);
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].strategy).toBe('A');
   });
 
-  test('enriches with empty history', () => {
-    const reflection = { whyFailed: 'unknown', whatToAvoid: [], suggestedApproach: 'retry', confidence: 0.5 };
-    const enriched = enrichContext('error msg', reflection, []);
-    expect(enriched).toContain('error msg');
-    expect(enriched).toContain('Reflection');
-    expect(enriched).not.toContain('Avoid:');
+  test('returns original list with no exclusions', () => {
+    const candidates = [
+      { strategy: 'A', score: 0.9 },
+      { strategy: 'B', score: 0.7 },
+    ];
+    const filtered = filterCandidates(candidates, []);
+    expect(filtered.length).toBe(2);
   });
 
-  // shouldContinueRefining()
-  test('stops at max attempts', () => {
-    const ctx: RefinementContext = {
-      originalError: 'test',
-      attemptHistory: [{ attempt: 0, strategy: 'retry', failed: true, durationMs: 100 }],
-      currentAttempt: 3,
-      maxAttempts: 3,
-    };
-    expect(shouldContinueRefining(ctx)).toBe(false);
+  test('filters multiple excluded strategies', () => {
+    const candidates = [
+      { strategy: 'A', score: 0.9 },
+      { strategy: 'B', score: 0.7 },
+      { strategy: 'C', score: 0.5 },
+      { strategy: 'D', score: 0.3 },
+    ];
+    const filtered = filterCandidates(candidates, ['A', 'C']);
+    expect(filtered.length).toBe(2);
+    expect(filtered.map(c => c.strategy)).toEqual(['B', 'D']);
   });
 
-  test('continues when attempts remain', () => {
-    const ctx: RefinementContext = {
-      originalError: 'test',
-      attemptHistory: [{ attempt: 0, strategy: 'retry', failed: true, durationMs: 100 }],
-      currentAttempt: 1,
-      maxAttempts: 3,
-    };
-    expect(shouldContinueRefining(ctx)).toBe(true);
+  // createRefinementContext + recordAttempt
+  test('context tracks attempts correctly', () => {
+    const ctx = createRefinementContext('test error', 3);
+    expect(ctx.currentAttempt).toBe(0);
+    expect(ctx.attemptHistory.length).toBe(0);
+
+    recordAttempt(ctx, 'strategyA', true, 'failed', 100);
+    expect(ctx.currentAttempt).toBe(1);
+    expect(ctx.attemptHistory.length).toBe(1);
+    expect(ctx.attemptHistory[0].strategy).toBe('strategyA');
+    expect(ctx.attemptHistory[0].failed).toBe(true);
+    expect(ctx.attemptHistory[0].durationMs).toBe(100);
+
+    recordAttempt(ctx, 'strategyB', false, undefined, 50);
+    expect(ctx.currentAttempt).toBe(2);
+    expect(ctx.attemptHistory.length).toBe(2);
+    expect(ctx.attemptHistory[1].failed).toBe(false);
   });
 
-  test('stops when 3+ unique strategies all failed', () => {
-    const ctx: RefinementContext = {
-      originalError: 'test',
-      attemptHistory: [
-        { attempt: 0, strategy: 'retry', failed: true, durationMs: 100 },
-        { attempt: 1, strategy: 'backoff_retry', failed: true, durationMs: 100 },
-        { attempt: 2, strategy: 'refresh_nonce', failed: true, durationMs: 100 },
-      ],
-      currentAttempt: 3,
-      maxAttempts: 5,
-    };
-    expect(shouldContinueRefining(ctx)).toBe(false);
-  });
+  // Full scenario: generic (no domain knowledge)
+  test('full refinement scenario — domain agnostic', () => {
+    const ctx = createRefinementContext('ERROR_CODE_42: something went wrong', 4);
 
-  test('continues when not all strategies failed', () => {
-    const ctx: RefinementContext = {
-      originalError: 'test',
-      attemptHistory: [
-        { attempt: 0, strategy: 'retry', failed: true, durationMs: 100 },
-        { attempt: 1, strategy: 'backoff_retry', failed: false, durationMs: 100 },
-      ],
-      currentAttempt: 2,
-      maxAttempts: 5,
-    };
-    expect(shouldContinueRefining(ctx)).toBe(true);
+    // Attempt 1
+    let result = refine(ctx);
+    expect(result.shouldContinue).toBe(true);
+    recordAttempt(ctx, 'fix_alpha', true, 'still broken');
+
+    // Attempt 2 — fix_alpha excluded
+    result = refine(ctx);
+    expect(result.shouldContinue).toBe(true);
+    expect(result.excludeStrategies).toContain('fix_alpha');
+    recordAttempt(ctx, 'fix_beta', true, 'nope');
+
+    // Attempt 3 — fix_alpha + fix_beta excluded
+    result = refine(ctx);
+    expect(result.shouldContinue).toBe(true);
+    expect(result.excludeStrategies).toContain('fix_alpha');
+    expect(result.excludeStrategies).toContain('fix_beta');
+    recordAttempt(ctx, 'fix_gamma', false); // success!
+
+    // After success, context has full history
+    expect(ctx.attemptHistory.length).toBe(3);
+    expect(ctx.attemptHistory[2].failed).toBe(false);
   });
 });
