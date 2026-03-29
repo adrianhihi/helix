@@ -1,6 +1,10 @@
 // ── Public API ──
 export { wrap, createEngine, shutdown } from './engine/wrap.js';
 
+// ── Self-Refine ──
+export { reflect, enrichContext, shouldContinueRefining } from './engine/self-refine.js';
+export type { Reflection, RefinementContext, AttemptRecord } from './engine/self-refine.js';
+
 // ── Types ──
 export type {
   FailureClassification,

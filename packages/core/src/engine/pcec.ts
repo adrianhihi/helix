@@ -424,6 +424,22 @@ export class PcecEngine {
 
     // ── FILTER: blocklist/allowlist ──
     const skippedStrategies: string[] = [];
+    // Self-Refine: avoid strategies that already failed in this repair session
+    const avoidStrategies = (context as any)?._avoidStrategies as string[] | undefined;
+    if (avoidStrategies?.length) {
+      const beforeCount = candidates.length;
+      candidates = candidates.filter(c => {
+        if (avoidStrategies.includes(c.strategy)) {
+          skippedStrategies.push(`${c.strategy} (Self-Refine: already failed)`);
+          return false;
+        }
+        return true;
+      });
+      // If ALL candidates were filtered, restore them (better to retry a failed strategy than give up)
+      if (candidates.length === 0 && beforeCount > 0) {
+        candidates = this.constructCandidates(failure);
+      }
+    }
     if (this.options.blockStrategies?.length) {
       candidates = candidates.filter(c => {
         if (this.options.blockStrategies!.includes(c.strategy)) {
