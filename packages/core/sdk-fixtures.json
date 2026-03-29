@@ -1,0 +1,202 @@
+[
+  {
+    "name": "Coinbase: ResourceExhausted (rate limit)",
+    "platform": "coinbase",
+    "errorClass": "ResourceExhaustedError",
+    "rawError": {
+      "name": "ResourceExhaustedError",
+      "apiCode": "resource_exhausted",
+      "apiMessage": "Rate limit exceeded: too many requests",
+      "httpCode": 429
+    },
+    "helixInput": "Rate limit exceeded: too many requests",
+    "expectedStrategy": "backoff_retry"
+  },
+  {
+    "name": "Coinbase: Unauthorized",
+    "platform": "coinbase",
+    "errorClass": "UnauthorizedError",
+    "rawError": {
+      "name": "UnauthorizedError",
+      "apiCode": "unauthorized",
+      "apiMessage": "Unauthorized: invalid API key or expired token",
+      "httpCode": 401
+    },
+    "helixInput": "Unauthorized: invalid API key or expired token",
+    "expectedStrategy": "backoff_retry"
+  },
+  {
+    "name": "Coinbase: NotFound",
+    "platform": "coinbase",
+    "errorClass": "NotFoundError",
+    "rawError": {
+      "name": "NotFoundError",
+      "apiCode": "not_found",
+      "apiMessage": "Not found: wallet not found",
+      "httpCode": 404
+    },
+    "helixInput": "Not found: wallet not found",
+    "expectedStrategy": "retry"
+  },
+  {
+    "name": "Coinbase: InvalidAmount (insufficient)",
+    "platform": "coinbase",
+    "errorClass": "InvalidAmountError",
+    "rawError": {
+      "name": "InvalidAmountError",
+      "apiCode": "invalid_amount",
+      "apiMessage": "Invalid amount: exceeds available balance",
+      "httpCode": 400
+    },
+    "helixInput": "Invalid amount: exceeds available balance",
+    "expectedStrategy": "reduce_request"
+  },
+  {
+    "name": "Coinbase: MalformedRequest",
+    "platform": "coinbase",
+    "errorClass": "MalformedRequestError",
+    "rawError": {
+      "name": "MalformedRequestError",
+      "apiCode": "malformed_request",
+      "apiMessage": "Malformed request: invalid nonce format",
+      "httpCode": 400
+    },
+    "helixInput": "Malformed request: invalid nonce format",
+    "expectedStrategy": "refresh_nonce"
+  },
+  {
+    "name": "Coinbase: InvalidNetworkID",
+    "platform": "coinbase",
+    "errorClass": "InvalidNetworkIDError",
+    "rawError": {
+      "name": "InvalidNetworkIDError",
+      "apiCode": "invalid_network_id",
+      "apiMessage": "Invalid network: expected base-mainnet, got base-sepolia",
+      "httpCode": 400
+    },
+    "helixInput": "Invalid network: expected base-mainnet, got base-sepolia",
+    "expectedStrategy": "switch_network"
+  },
+  {
+    "name": "Coinbase: InternalError (gas est)",
+    "platform": "coinbase",
+    "errorClass": "InternalError",
+    "rawError": {
+      "name": "InternalError",
+      "apiCode": "internal",
+      "apiMessage": "Internal error: gas estimation failed",
+      "httpCode": 500
+    },
+    "helixInput": "Internal error: gas estimation failed",
+    "expectedStrategy": "speed_up_transaction"
+  },
+  {
+    "name": "Coinbase: FaucetLimitReached",
+    "platform": "coinbase",
+    "errorClass": "FaucetLimitReachedError",
+    "rawError": {
+      "name": "FaucetLimitReachedError",
+      "apiCode": "faucet_limit_reached",
+      "apiMessage": "Faucet limit reached for this address",
+      "httpCode": 429
+    },
+    "helixInput": "Faucet limit reached for this address",
+    "expectedStrategy": "backoff_retry"
+  },
+  {
+    "name": "Privy: RateLimitError",
+    "platform": "privy",
+    "errorClass": "RateLimitError",
+    "rawError": {
+      "name": "Error",
+      "message": "429 Rate limit exceeded",
+      "status": 429
+    },
+    "helixInput": "429 Rate limit exceeded",
+    "expectedStrategy": "backoff_retry"
+  },
+  {
+    "name": "Privy: AuthenticationError",
+    "platform": "privy",
+    "errorClass": "AuthenticationError",
+    "rawError": {
+      "name": "Error",
+      "message": "401 Authentication failed: invalid token",
+      "status": 401
+    },
+    "helixInput": "401 Authentication failed: invalid token",
+    "expectedStrategy": "retry"
+  },
+  {
+    "name": "Privy: NotFoundError",
+    "platform": "privy",
+    "errorClass": "NotFoundError",
+    "rawError": {
+      "name": "Error",
+      "message": "404 Not found: user wallet not found",
+      "status": 404
+    },
+    "helixInput": "404 Not found: user wallet not found",
+    "expectedStrategy": "retry"
+  },
+  {
+    "name": "Privy: BadRequestError (insufficient)",
+    "platform": "privy",
+    "errorClass": "BadRequestError",
+    "rawError": {
+      "name": "Error",
+      "message": "400 Bad request: insufficient funds for transaction",
+      "status": 400
+    },
+    "helixInput": "400 Bad request: insufficient funds for transaction",
+    "expectedStrategy": "reduce_request"
+  },
+  {
+    "name": "Privy: PermissionDeniedError (policy)",
+    "platform": "privy",
+    "errorClass": "PermissionDeniedError",
+    "rawError": {
+      "name": "Error",
+      "message": "403 Permission denied: policy violation AMOUNT_EXCEEDS_LIMIT",
+      "status": 403
+    },
+    "helixInput": "403 Permission denied: policy violation AMOUNT_EXCEEDS_LIMIT",
+    "expectedStrategy": "split_transaction"
+  },
+  {
+    "name": "Privy: InternalServerError",
+    "platform": "privy",
+    "errorClass": "InternalServerError",
+    "rawError": {
+      "name": "Error",
+      "message": "500 Internal server error",
+      "status": 500
+    },
+    "helixInput": "500 Internal server error",
+    "expectedStrategy": "retry"
+  },
+  {
+    "name": "Privy: UnprocessableEntityError (gas)",
+    "platform": "privy",
+    "errorClass": "UnprocessableEntityError",
+    "rawError": {
+      "name": "Error",
+      "message": "422 Unprocessable entity: gas limit exceeded",
+      "status": 422
+    },
+    "helixInput": "422 Unprocessable entity: gas limit exceeded",
+    "expectedStrategy": "speed_up_transaction"
+  },
+  {
+    "name": "Privy: ConflictError (nonce)",
+    "platform": "privy",
+    "errorClass": "ConflictError",
+    "rawError": {
+      "name": "Error",
+      "message": "409 Conflict: nonce mismatch in wallet internal state",
+      "status": 409
+    },
+    "helixInput": "409 Conflict: nonce mismatch in wallet internal state",
+    "expectedStrategy": "refresh_nonce"
+  }
+]

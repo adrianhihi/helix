@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-03-27T02:15:02.898Z",
+  "duration_ms": 60000,
+  "error_rate": 0.5,
+  "without_helix": {
+    "attempts": 6,
+    "succeeded": 4,
+    "failed": 2,
+    "failure_rate": "33.3%",
+    "errors": [
+      "[2026-03-27T02:14:22.745Z] nonce: Nonce provided for the transaction (44) is lower than the current nonce of the account.\nTry increasing the nonce or find the latest nonce with `getTransactionCount`.",
+      "[2026-03-27T02:14:46.746Z] balance: The total cost (gas * gas fee + value) of executing this transaction exceeds the balance of the account."
+    ]
+  },
+  "with_helix": {
+    "attempts": 6,
+    "succeeded": 6,
+    "failed": 0,
+    "repaired": 2,
+    "repair_rate": "100.0%",
+    "tx_hashes": [
+      "0x555b2ddd052c1465cc18db545c862768755020871aa67cf2bc7682c9ff8119f3",
+      "0xd946154b7261b18f1d494806d2bfca0516f5961f3916047377d62cc410dad13b"
+    ],
+    "repairs": [
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0x555b2ddd052c1465cc18db545c862768755020871aa67cf2bc7682c9ff8119f3",
+        "repairMs": 5144
+      },
+      {
+        "error": "balance",
+        "strategy": "auto-repaired",
+        "txHash": "0xd946154b7261b18f1d494806d2bfca0516f5961f3916047377d62cc410dad13b",
+        "repairMs": 3967
+      }
+    ]
+  }
+}

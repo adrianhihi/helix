@@ -1,0 +1,161 @@
+{
+  "timestamp": "2026-03-27T19:29:12.365Z",
+  "duration_ms": 43200000,
+  "error_rate": 0.08,
+  "without_helix": {
+    "attempts": 242,
+    "succeeded": 231,
+    "failed": 11,
+    "failure_rate": "4.5%",
+    "errors": [
+      "[2026-03-27T09:13:11.122Z] gas: The amount of gas (1) provided for the transaction is too low.",
+      "[2026-03-27T09:29:11.122Z] rate_limit: 429 Too Many Requests",
+      "[2026-03-27T11:37:11.123Z] nonce: Nonce provided for the transaction (166) is lower than the current nonce of the account.\nTry increasing the nonce or find the latest nonce with `getTransactionCount`.",
+      "[2026-03-27T12:33:11.100Z] none: Timed out while waiting for transaction with hash \"0x1b29221376bc40b0a14b0138f2bd9360512b4df667234db8c9f4230b10f12e61\" to be confirmed.",
+      "[2026-03-27T13:37:11.123Z] nonce: Nonce provided for the transaction (224) is lower than the current nonce of the account.\nTry increasing the nonce or find the latest nonce with `getTransactionCount`.",
+      "[2026-03-27T13:49:11.123Z] rate_limit: 429 Too Many Requests",
+      "[2026-03-27T14:45:11.141Z] nonce: Nonce provided for the transaction (254) is lower than the current nonce of the account.\nTry increasing the nonce or find the latest nonce with `getTransactionCount`.",
+      "[2026-03-27T15:01:11.125Z] balance: The total cost (gas * gas fee + value) of executing this transaction exceeds the balance of the account.",
+      "[2026-03-27T16:09:11.126Z] nonce: Nonce provided for the transaction (294) is lower than the current nonce of the account.\nTry increasing the nonce or find the latest nonce with `getTransactionCount`.",
+      "[2026-03-27T19:05:11.123Z] balance: The total cost (gas * gas fee + value) of executing this transaction exceeds the balance of the account.",
+      "[2026-03-27T19:27:25.705Z] gas: The amount of gas (1) provided for the transaction is too low."
+    ]
+  },
+  "with_helix": {
+    "attempts": 242,
+    "succeeded": 241,
+    "failed": 1,
+    "repaired": 18,
+    "repair_rate": "94.7%",
+    "tx_hashes": [
+      "0xdf2b608d2b9000400345871e26a3af326899b066b84de3e1279aaf8b087587ec",
+      "0xffecb1ebd6f47296d6999b1d26a568f7aee4bf81481ed85a763921f38a690ecb",
+      "0xffecb1ebd6f47296d6999b1d26a568f7aee4bf81481ed85a763921f38a690ecb",
+      "0x006090087699685dfcf547a3d7424c29b9fe41e17f7245b14ce9597d4b02e8f5",
+      "0xa76f85cf2e8cbc18c8e458d188b08a7fa597738eb1b0b7e3baf2396b466c6909",
+      "0xa76f85cf2e8cbc18c8e458d188b08a7fa597738eb1b0b7e3baf2396b466c6909",
+      "0xc6a95d4f573d188f0f75d53fe203735127b6c2f4bdbe707e39cd2699f7c3c324",
+      "0x7f8125f326cd7f42d41c364dc07138696a198efd6353a0aadea0230e11b5fc39",
+      "0x1385bd275bde89b05d62e86722d990e1f88be94fe4dfb1b520cedbc31e6236c1",
+      "0x887779b53213897e3b5cf98cc712bb60de32963334b3d9eea6e0a54799352d3e",
+      "0x08478797a3af9ae855a983eb6cba9e6791ccd7443fd86cf517fc77bc7b3a6cea",
+      "0xefa40d62190011bad64dbe353b97077f8f2991015264a6e6b489886992020b75",
+      "0x61330ce8f2c9b1f5b9a4e86995f1c8be4f641f370e628207e1e9d1f026f97771",
+      "0x1d5ff40a8485627b3b18fcbc85bade8ed7e5fbc39906fdd945c138cae3690882",
+      "0x20ee635b86533622a29ecbea447fc0f3683fc11281996d9772545243ed9f7f4d",
+      "0xd09819227b26ff9b1e4663085c19dcef64ea7bc77f14bc7cef3bb5d591ec912f",
+      "0x3d560934c19261af4f87fb16e48fe100196db010c6915f97b5041463125f106a",
+      "0x1ff2ea0d0e3b316f9871322dd7898f4bdd0d82fc00227a93192e2639b71a1374"
+    ],
+    "repairs": [
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0xdf2b608d2b9000400345871e26a3af326899b066b84de3e1279aaf8b087587ec",
+        "repairMs": 456
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0xffecb1ebd6f47296d6999b1d26a568f7aee4bf81481ed85a763921f38a690ecb",
+        "repairMs": 514
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0xffecb1ebd6f47296d6999b1d26a568f7aee4bf81481ed85a763921f38a690ecb",
+        "repairMs": 506
+      },
+      {
+        "error": "gas",
+        "strategy": "auto-repaired",
+        "txHash": "0x006090087699685dfcf547a3d7424c29b9fe41e17f7245b14ce9597d4b02e8f5",
+        "repairMs": 1489
+      },
+      {
+        "error": "rate_limit",
+        "strategy": "backoff_retry",
+        "txHash": "0xa76f85cf2e8cbc18c8e458d188b08a7fa597738eb1b0b7e3baf2396b466c6909",
+        "repairMs": 3391
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0xa76f85cf2e8cbc18c8e458d188b08a7fa597738eb1b0b7e3baf2396b466c6909",
+        "repairMs": 521
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0xc6a95d4f573d188f0f75d53fe203735127b6c2f4bdbe707e39cd2699f7c3c324",
+        "repairMs": 947
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0x7f8125f326cd7f42d41c364dc07138696a198efd6353a0aadea0230e11b5fc39",
+        "repairMs": 2836
+      },
+      {
+        "error": "rate_limit",
+        "strategy": "backoff_retry",
+        "txHash": "0x1385bd275bde89b05d62e86722d990e1f88be94fe4dfb1b520cedbc31e6236c1",
+        "repairMs": 3387
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0x887779b53213897e3b5cf98cc712bb60de32963334b3d9eea6e0a54799352d3e",
+        "repairMs": 442
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0x08478797a3af9ae855a983eb6cba9e6791ccd7443fd86cf517fc77bc7b3a6cea",
+        "repairMs": 1388
+      },
+      {
+        "error": "balance",
+        "strategy": "auto-repaired",
+        "txHash": "0xefa40d62190011bad64dbe353b97077f8f2991015264a6e6b489886992020b75",
+        "repairMs": 547
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0x61330ce8f2c9b1f5b9a4e86995f1c8be4f641f370e628207e1e9d1f026f97771",
+        "repairMs": 1203
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0x1d5ff40a8485627b3b18fcbc85bade8ed7e5fbc39906fdd945c138cae3690882",
+        "repairMs": 486
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0x20ee635b86533622a29ecbea447fc0f3683fc11281996d9772545243ed9f7f4d",
+        "repairMs": 515
+      },
+      {
+        "error": "balance",
+        "strategy": "auto-repaired",
+        "txHash": "0xd09819227b26ff9b1e4663085c19dcef64ea7bc77f14bc7cef3bb5d591ec912f",
+        "repairMs": 537
+      },
+      {
+        "error": "gas",
+        "strategy": "auto-repaired",
+        "txHash": "0x3d560934c19261af4f87fb16e48fe100196db010c6915f97b5041463125f106a",
+        "repairMs": 959
+      },
+      {
+        "error": "nonce",
+        "strategy": "auto-repaired",
+        "txHash": "0x1ff2ea0d0e3b316f9871322dd7898f4bdd0d82fc00227a93192e2639b71a1374",
+        "repairMs": 406
+      }
+    ]
+  }
+}
