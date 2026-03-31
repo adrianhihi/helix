@@ -1,5 +1,6 @@
 # ── Build stage ──
 FROM node:20-alpine AS builder
+ARG CACHE_BUST=2
 
 WORKDIR /app
 
@@ -24,6 +25,7 @@ WORKDIR /app
 
 # Copy only what's needed
 COPY --from=builder /app/packages/core/dist/ packages/core/dist/
+COPY --from=builder /app/packages/core/static/ packages/core/static/
 COPY --from=builder /app/packages/core/package.json packages/core/
 COPY --from=builder /app/node_modules/ node_modules/
 COPY package.json ./
