@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helix · Evolution Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0c0a07;color:#f5f0e8;font-family:'Sora',sans-serif;overflow:hidden;height:100vh}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:rgba(12,10,7,.92);border-bottom:1px solid rgba(245,240,232,.08);backdrop-filter:blur(12px);z-index:10;position:relative}
+.top-bar h1{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.top-bar h1 span{color:rgba(245,240,232,.4);font-weight:400}
+.nav-links{display:flex;gap:12px;align-items:center}
+.nav-links a{color:rgba(245,240,232,.5);text-decoration:none;font-size:13px;padding:5px 12px;border-radius:6px;transition:all .2s}
+.nav-links a:hover{color:#f5f0e8;background:rgba(245,240,232,.08)}
+.nav-links a.active{color:#f5f0e8;background:rgba(245,240,232,.12)}
+.filters{display:flex;gap:8px;padding:8px 24px;background:rgba(12,10,7,.85);border-bottom:1px solid rgba(245,240,232,.05)}
+.filter-btn{padding:4px 14px;border-radius:99px;border:1px solid rgba(245,240,232,.12);background:transparent;color:rgba(245,240,232,.6);font-family:'Sora',sans-serif;font-size:12px;cursor:pointer;transition:all .3s}
+.filter-btn:hover{border-color:rgba(245,240,232,.3);color:#f5f0e8}
+.filter-btn.active{background:rgba(245,240,232,.12);border-color:rgba(245,240,232,.25);color:#f5f0e8}
+.stats-strip{display:flex;gap:32px;padding:10px 24px;background:rgba(12,10,7,.8);border-bottom:1px solid rgba(245,240,232,.05);font-size:13px}
+.stat{display:flex;gap:6px;align-items:baseline}
+.stat .label{color:rgba(245,240,232,.4);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.stat .value{font-family:'JetBrains Mono',monospace;font-weight:500;font-size:14px}
+.stat .value.green{color:#22c55e}
+.stat .value.amber{color:#f59e0b}
+#graph-container{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0}
+svg{width:100%;height:100%}
+.side-panel{position:fixed;right:0;top:80px;width:260px;padding:20px;background:rgba(12,10,7,.9);border-left:1px solid rgba(245,240,232,.08);backdrop-filter:blur(12px);z-index:5;height:calc(100vh - 80px);overflow-y:auto}
+.side-panel h3{font-size:13px;font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em;color:rgba(245,240,232,.5)}
+.health-metric{margin-bottom:12px}
+.health-metric .name{font-size:11px;color:rgba(245,240,232,.4);text-transform:uppercase;letter-spacing:.05em}
+.health-metric .bar{height:4px;background:rgba(245,240,232,.08);border-radius:2px;margin:4px 0}
+.health-metric .bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.health-metric .val{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(245,240,232,.7)}
+.strat-bar{margin-bottom:6px}
+.strat-bar .name{font-size:11px;color:rgba(245,240,232,.5);display:flex;justify-content:space-between}
+.strat-bar .bar{height:3px;background:rgba(245,240,232,.06);border-radius:2px;margin-top:2px}
+.strat-bar .bar-fill{height:100%;border-radius:2px;background:rgba(245,240,232,.3)}
+.legend{position:fixed;bottom:16px;left:24px;display:flex;gap:16px;z-index:10;font-size:11px;color:rgba(245,240,232,.4)}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+.tooltip{position:fixed;padding:8px 14px;background:rgba(12,10,7,.95);border:1px solid rgba(245,240,232,.15);border-radius:8px;font-size:12px;pointer-events:none;z-index:20;display:none;max-width:260px;backdrop-filter:blur(8px)}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <h1>Helix <span>· Evolution Tree</span></h1>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="evolution-tree.html" class="active">Evolution Tree</a>
+  </div>
+</div>
+<div class="filters" id="filters"></div>
+<div class="stats-strip" id="stats-strip"></div>
+<div id="graph-container"><svg id="graph"></svg></div>
+<div class="side-panel" id="side-panel">
+  <h3>Ecosystem Health</h3>
+  <div id="health-metrics"></div>
+  <h3 style="margin-top:20px">Strategy Distribution</h3>
+  <div id="strat-dist"></div>
+  <h3 style="margin-top:20px">Platforms</h3>
+  <div id="platforms"></div>
+</div>
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#f5f0e8"></div> Core</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div> Category</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> Platform</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div> Strategy</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Success</div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const COLORS = { core:'#f5f0e8', category:'#60a5fa', platform:'#a78bfa', strategy:'#fbbf24', outcome:'#22c55e' };
+const RADIUS = { core:28, category:16, platform:14, strategy:12, outcome:4 };
+
+let activeFilter = null;
+let simulation, nodeEls, linkEls, labelEls;
+
+// Embedded seed data for static hosting (Cloudflare Pages)
+const SEED_DATA = {"nodes":[{"id":"helix","label":"Helix","group":"core","events":14},{"id":"cat-signature","label":"signature","events":10,"group":"category"},{"id":"cat-balance","label":"balance","events":8,"group":"category"},{"id":"cat-auth","label":"auth","events":15,"group":"category"},{"id":"cat-network","label":"network","events":6,"group":"category"},{"id":"cat-service","label":"service","events":12,"group":"category"},{"id":"cat-policy","label":"policy","events":5,"group":"category"},{"id":"cat-session","label":"session","events":7,"group":"category"},{"id":"cat-compliance","label":"compliance","events":4,"group":"category"},{"id":"cat-dex","label":"dex","events":3,"group":"category"},{"id":"cat-batch","label":"batch","events":4,"group":"category"},{"id":"cat-gas","label":"gas","events":0,"group":"category"},{"id":"plat-tempo","label":"tempo","events":6,"group":"platform"},{"id":"plat-privy","label":"privy","events":4,"group":"platform"},{"id":"plat-coinbase","label":"coinbase","events":8,"group":"platform"},{"id":"plat-generic","label":"generic","events":4,"group":"platform"},{"id":"strat-refresh_nonce","label":"refresh_nonce","count":1,"successes":10,"group":"strategy"},{"id":"strat-reduce_request","label":"reduce_request","count":1,"successes":8,"group":"strategy"},{"id":"strat-backoff_retry","label":"backoff_retry","count":2,"successes":25,"group":"strategy"},{"id":"strat-switch_network","label":"switch_network","count":1,"successes":6,"group":"strategy"},{"id":"strat-retry","label":"retry","count":1,"successes":12,"group":"strategy"},{"id":"strat-split_transaction","label":"split_transaction","count":1,"successes":5,"group":"strategy"},{"id":"strat-renew_session","label":"renew_session","count":1,"successes":7,"group":"strategy"},{"id":"strat-fix_params","label":"fix_params","count":1,"successes":6,"group":"strategy"},{"id":"strat-switch_stablecoin","label":"switch_stablecoin","count":1,"successes":4,"group":"strategy"},{"id":"strat-split_swap","label":"split_swap","count":1,"successes":3,"group":"strategy"},{"id":"strat-remove_and_resubmit","label":"remove_and_resubmit","count":1,"successes":4,"group":"strategy"},{"id":"strat-speed_up_transaction","label":"speed_up_transaction","count":1,"successes":0,"group":"strategy"}],"links":[{"source":"helix","target":"cat-signature","type":"core-cat"},{"source":"helix","target":"cat-balance","type":"core-cat"},{"source":"helix","target":"cat-auth","type":"core-cat"},{"source":"helix","target":"cat-network","type":"core-cat"},{"source":"helix","target":"cat-service","type":"core-cat"},{"source":"helix","target":"cat-policy","type":"core-cat"},{"source":"helix","target":"cat-session","type":"core-cat"},{"source":"helix","target":"cat-compliance","type":"core-cat"},{"source":"helix","target":"cat-dex","type":"core-cat"},{"source":"helix","target":"cat-batch","type":"core-cat"},{"source":"helix","target":"cat-gas","type":"core-cat"},{"source":"helix","target":"plat-tempo","type":"core-plat"},{"source":"helix","target":"plat-privy","type":"core-plat"},{"source":"helix","target":"plat-coinbase","type":"core-plat"},{"source":"helix","target":"plat-generic","type":"core-plat"},{"source":"cat-signature","target":"strat-refresh_nonce","type":"cat-strat"},{"source":"cat-balance","target":"strat-reduce_request","type":"cat-strat"},{"source":"cat-auth","target":"strat-backoff_retry","type":"cat-strat"},{"source":"cat-network","target":"strat-switch_network","type":"cat-strat"},{"source":"cat-service","target":"strat-retry","type":"cat-strat"},{"source":"cat-service","target":"strat-backoff_retry","type":"cat-strat"},{"source":"cat-policy","target":"strat-split_transaction","type":"cat-strat"},{"source":"cat-session","target":"strat-renew_session","type":"cat-strat"},{"source":"cat-service","target":"strat-fix_params","type":"cat-strat"},{"source":"cat-compliance","target":"strat-switch_stablecoin","type":"cat-strat"},{"source":"cat-dex","target":"strat-split_swap","type":"cat-strat"},{"source":"cat-batch","target":"strat-remove_and_resubmit","type":"cat-strat"},{"source":"cat-gas","target":"strat-speed_up_transaction","type":"cat-strat"},{"source":"plat-tempo","target":"cat-signature","type":"plat-cat"},{"source":"plat-privy","target":"cat-signature","type":"plat-cat"},{"source":"plat-coinbase","target":"cat-signature","type":"plat-cat"},{"source":"plat-tempo","target":"cat-balance","type":"plat-cat"},{"source":"plat-privy","target":"cat-balance","type":"plat-cat"},{"source":"plat-coinbase","target":"cat-balance","type":"plat-cat"},{"source":"plat-generic","target":"cat-auth","type":"plat-cat"},{"source":"plat-coinbase","target":"cat-auth","type":"plat-cat"},{"source":"plat-tempo","target":"cat-network","type":"plat-cat"},{"source":"plat-privy","target":"cat-network","type":"plat-cat"},{"source":"plat-coinbase","target":"cat-network","type":"plat-cat"},{"source":"plat-generic","target":"cat-service","type":"plat-cat"},{"source":"plat-coinbase","target":"cat-service","type":"plat-cat"},{"source":"plat-tempo","target":"cat-service","type":"plat-cat"},{"source":"plat-privy","target":"cat-policy","type":"plat-cat"},{"source":"plat-coinbase","target":"cat-policy","type":"plat-cat"},{"source":"plat-tempo","target":"cat-session","type":"plat-cat"},{"source":"plat-tempo","target":"cat-compliance","type":"plat-cat"},{"source":"plat-tempo","target":"cat-dex","type":"plat-cat"},{"source":"plat-tempo","target":"cat-batch","type":"plat-cat"},{"source":"plat-coinbase","target":"cat-batch","type":"plat-cat"},{"source":"plat-tempo","target":"cat-gas","type":"plat-cat"},{"source":"plat-coinbase","target":"cat-gas","type":"plat-cat"}],"stats":{"totalGenes":14,"totalOutcomes":42,"healed":42,"failed":0,"successRate":"100.0","avgQ":"0.801"},"health":{"shannonH":"2.441","richness":12,"evenness":"0.982"},"strategyDistribution":[["backoff_retry",2],["refresh_nonce",1],["reduce_request",1],["switch_network",1],["retry",1],["split_transaction",1],["renew_session",1],["fix_params",1],["switch_stablecoin",1],["split_swap",1],["remove_and_resubmit",1],["speed_up_transaction",1]],"platforms":[{"name":"tempo","events":6},{"name":"privy","events":4},{"name":"coinbase","events":8},{"name":"generic","events":4}]};
+
+// Add outcome nodes to seed data
+let _oid = 0;
+for (const n of [...SEED_DATA.nodes]) {
+  if (n.group === 'strategy' && n.successes > 0) {
+    for (let i = 0; i < Math.min(n.successes, 3); i++) {
+      const id = `out-${_oid++}`;
+      SEED_DATA.nodes.push({ id, group: 'outcome', result: 'success' });
+      SEED_DATA.links.push({ source: n.id, target: id, type: 'strat-out' });
+    }
+  }
+}
+
+async function loadData() {
+  // Try live API first, fall back to embedded seed data
+  try {
+    const res = await fetch('/api/evolution-tree');
+    if (res.ok) return await res.json();
+  } catch {}
+  return JSON.parse(JSON.stringify(SEED_DATA)); // deep clone
+}
+
+function updateStats(s) {
+  document.getElementById('stats-strip').innerHTML = [
+    `<div class="stat"><span class="label">Genes</span><span class="value">${s.totalGenes||0}</span></div>`,
+    `<div class="stat"><span class="label">Outcomes</span><span class="value">${s.totalOutcomes||0}</span></div>`,
+    `<div class="stat"><span class="label">Healed</span><span class="value green">${s.healed||0}</span></div>`,
+    `<div class="stat"><span class="label">Failed</span><span class="value amber">${s.failed||0}</span></div>`,
+    `<div class="stat"><span class="label">Success Rate</span><span class="value green">${s.successRate||0}%</span></div>`,
+    `<div class="stat"><span class="label">Avg Q</span><span class="value">${s.avgQ||0}</span></div>`,
+  ].join('');
+}
+
+function updateHealth(h) {
+  const metrics = [
+    { name:'Shannon Diversity', val:h.shannonH, max:3, color:'#60a5fa' },
+    { name:'Richness', val:h.richness, max:20, color:'#a78bfa' },
+    { name:'Evenness', val:h.evenness, max:1, color:'#22c55e' },
+  ];
+  document.getElementById('health-metrics').innerHTML = metrics.map(m =>
+    `<div class="health-metric">
+      <div class="name">${m.name}</div>
+      <div class="bar"><div class="bar-fill" style="width:${Math.min(100,m.val/m.max*100)}%;background:${m.color}"></div></div>
+      <div class="val">${m.val}</div>
+    </div>`
+  ).join('');
+}
+
+function updateStratDist(dist) {
+  const max = dist.length > 0 ? dist[0][1] : 1;
+  document.getElementById('strat-dist').innerHTML = dist.slice(0,8).map(([name,count]) =>
+    `<div class="strat-bar">
+      <div class="name"><span>${name}</span><span style="font-family:'JetBrains Mono';font-size:11px">${count}</span></div>
+      <div class="bar"><div class="bar-fill" style="width:${count/max*100}%"></div></div>
+    </div>`
+  ).join('');
+}
+
+function updatePlatforms(plats) {
+  document.getElementById('platforms').innerHTML = plats.map(p =>
+    `<div class="strat-bar"><div class="name"><span>${p.name}</span><span style="font-family:'JetBrains Mono';font-size:11px">${p.events}</span></div></div>`
+  ).join('');
+}
+
+function buildFilters(nodes) {
+  const groups = ['category','platform','strategy'];
+  const el = document.getElementById('filters');
+  el.innerHTML = `<button class="filter-btn active" data-filter="all">All</button>` +
+    groups.map(g => {
+      const items = nodes.filter(n => n.group === g);
+      return items.map(n => `<button class="filter-btn" data-filter="${n.id}">${n.label||n.id}</button>`).join('');
+    }).join('');
+  el.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter === 'all' ? null : btn.dataset.filter;
+      applyFilter();
+    });
+  });
+}
+
+function applyFilter() {
+  if (!nodeEls) return;
+  if (!activeFilter) {
+    nodeEls.style('opacity', 1);
+    linkEls.style('opacity', .15);
+    labelEls.style('opacity', 1);
+    return;
+  }
+  const connected = new Set([activeFilter]);
+  linkEls.each(function(d) {
+    const sid = typeof d.source === 'object' ? d.source.id : d.source;
+    const tid = typeof d.target === 'object' ? d.target.id : d.target;
+    if (sid === activeFilter) connected.add(tid);
+    if (tid === activeFilter) connected.add(sid);
+  });
+  nodeEls.style('opacity', d => connected.has(d.id) ? 1 : .08);
+  linkEls.style('opacity', d => {
+    const sid = typeof d.source === 'object' ? d.source.id : d.source;
+    const tid = typeof d.target === 'object' ? d.target.id : d.target;
+    return connected.has(sid) && connected.has(tid) ? .4 : .03;
+  });
+  labelEls.style('opacity', d => connected.has(d.id) ? 1 : 0);
+}
+
+function createGraph(nodes, links) {
+  const svg = d3.select('#graph');
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  svg.selectAll('*').remove();
+
+  const defs = svg.append('defs');
+  const glow = defs.append('filter').attr('id','glow');
+  glow.append('feGaussianBlur').attr('stdDeviation','3').attr('result','blur');
+  glow.append('feMerge').selectAll('feMergeNode').data(['blur','SourceGraphic']).enter().append('feMergeNode').attr('in',d=>d);
+
+  const g = svg.append('g');
+  const zoom = d3.zoom().scaleExtent([.3,4]).on('zoom', e => g.attr('transform',e.transform));
+  svg.call(zoom);
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(d => {
+      if(d.type==='strat-out') return 30;
+      if(d.type==='cat-strat') return 80;
+      return 120;
+    }))
+    .force('charge', d3.forceManyBody().strength(d => d.group==='outcome'?-5:-80))
+    .force('center', d3.forceCenter(width/2, height/2))
+    .force('collision', d3.forceCollide().radius(d => (RADIUS[d.group]||6)+4));
+
+  linkEls = g.append('g').selectAll('line').data(links).enter().append('line')
+    .attr('stroke', 'rgba(245,240,232,.12)')
+    .attr('stroke-width', d => d.type==='strat-out'?.5:1);
+
+  nodeEls = g.append('g').selectAll('circle').data(nodes).enter().append('circle')
+    .attr('r', d => RADIUS[d.group]||6)
+    .attr('fill', d => d.result==='success'?'#22c55e':d.result==='failure'?'#ef4444':COLORS[d.group]||'#888')
+    .attr('fill-opacity', d => d.group==='outcome'?.7:1)
+    .attr('stroke', d => d.group==='outcome'?'none':'rgba(12,10,7,.6)')
+    .attr('stroke-width', d => d.group==='core'?3:1.5)
+    .style('cursor','pointer')
+    .style('filter', d => d.group==='core'?'url(#glow)':'none')
+    .call(d3.drag().on('start',(e,d)=>{if(!e.active)simulation.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y})
+      .on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y})
+      .on('end',(e,d)=>{if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=null}));
+
+  const tooltip = document.getElementById('tooltip');
+  nodeEls.on('mouseover', (e,d) => {
+    if(d.group==='outcome') return;
+    tooltip.style.display='block';
+    tooltip.style.left=(e.pageX+12)+'px';
+    tooltip.style.top=(e.pageY-12)+'px';
+    let html = `<strong>${d.label||d.id}</strong><br><span style="color:rgba(245,240,232,.5)">${d.group}</span>`;
+    if(d.events!==undefined) html+=`<br>Events: ${d.events}`;
+    if(d.count!==undefined) html+=`<br>Genes: ${d.count}`;
+    if(d.successes!==undefined) html+=`<br>Successes: ${d.successes}`;
+    tooltip.innerHTML=html;
+    // highlight connected
+    const connected = new Set([d.id]);
+    linkEls.each(function(l){
+      const s=typeof l.source==='object'?l.source.id:l.source;
+      const t=typeof l.target==='object'?l.target.id:l.target;
+      if(s===d.id) connected.add(t);
+      if(t===d.id) connected.add(s);
+    });
+    nodeEls.style('opacity',n=>connected.has(n.id)?1:.12);
+    linkEls.style('opacity',l=>{
+      const s=typeof l.source==='object'?l.source.id:l.source;
+      const t=typeof l.target==='object'?l.target.id:l.target;
+      return connected.has(s)&&connected.has(t)?.5:.03;
+    });
+  }).on('mouseout', () => {
+    tooltip.style.display='none';
+    if(!activeFilter){nodeEls.style('opacity',1);linkEls.style('opacity',.15);}
+    else applyFilter();
+  });
+
+  labelEls = g.append('g').selectAll('text').data(nodes.filter(d=>d.group!=='outcome')).enter().append('text')
+    .attr('text-anchor','middle')
+    .attr('dy', d => (RADIUS[d.group]||6)+14)
+    .attr('fill','#f5f0e8')
+    .attr('font-size', d => d.group==='core'?13:10)
+    .attr('font-weight', 600)
+    .attr('font-family','Sora, sans-serif')
+    .attr('stroke','#0c0a07')
+    .attr('stroke-width',3)
+    .attr('paint-order','stroke')
+    .text(d => d.label||d.id);
+
+  simulation.on('tick', () => {
+    linkEls.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    nodeEls.attr('cx',d=>d.x).attr('cy',d=>d.y);
+    labelEls.attr('x',d=>d.x).attr('y',d=>d.y);
+  });
+
+  // Animated particles on major links
+  const majorLinks = links.filter(l => l.type !== 'strat-out');
+  const particles = g.append('g').selectAll('circle').data(majorLinks).enter().append('circle')
+    .attr('r', 1.5).attr('fill', '#f5f0e8').attr('fill-opacity', .4);
+
+  function animateParticles() {
+    particles.each(function(d) {
+      const el = d3.select(this);
+      const sx=d.source.x||0, sy=d.source.y||0, tx=d.target.x||0, ty=d.target.y||0;
+      const t = (Date.now() % 3000) / 3000;
+      el.attr('cx', sx + (tx-sx)*t).attr('cy', sy + (ty-sy)*t);
+    });
+    requestAnimationFrame(animateParticles);
+  }
+  animateParticles();
+}
+
+// Init
+loadData().then(data => {
+  updateStats(data.stats);
+  updateHealth(data.health);
+  updateStratDist(data.strategyDistribution);
+  updatePlatforms(data.platforms);
+  buildFilters(data.nodes);
+  createGraph(data.nodes, data.links);
+});
+
+// Auto-refresh stats every 30s
+setInterval(async () => {
+  try {
+    const data = await loadData();
+    updateStats(data.stats);
+    updateHealth(data.health);
+    updateStratDist(data.strategyDistribution);
+    updatePlatforms(data.platforms);
+  } catch {}
+}, 30000);
+</script>
+</body>
+</html>
