@@ -104,7 +104,13 @@ export function createApiServer(opts: ApiServerOptions = {}) {
 
     // GET /.well-known/x402 — MPP discovery
     if (path === '/.well-known/x402' && req.method === 'GET') {
-      return json(res, { version: '1.0', 'openapi-url': '/openapi.json', endpoints: ['/heal', '/observe'] });
+      return json(res, {
+        version: '1.0',
+        'openapi-url': '/openapi.json',
+        facilitator: 'https://helix-production-e110.up.railway.app',
+        endpoints: ['/heal', '/observe'],
+        accepts: [{ scheme: 'exact', network: 'base', asset: 'USDC', maxAmountRequired: '0.01' }],
+      });
     }
 
     // GET /openapi.json — OpenAPI 3.1.0 spec for MPPScan discovery
@@ -153,7 +159,6 @@ export function createApiServer(opts: ApiServerOptions = {}) {
               summary: 'Gene Map - View learned repair patterns',
               tags: ['Intelligence'],
               security: [],
-              'x-auth-mode': 'none',
               responses: { '200': { description: 'Gene Map state', content: { 'application/json': { schema: { type: 'object', properties: { totalGenes: { type: 'number' }, topPatterns: { type: 'array', items: { type: 'object' } }, successRate: { type: 'number' } }, required: ['totalGenes', 'topPatterns', 'successRate'] } } } } },
             },
           },
@@ -217,14 +222,21 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       }
     }
 
-    // GET /gene-map — View learned repair patterns (public)
+    // GET /gene-map — View learned repair patterns (public, no auth)
     if (path === '/gene-map' && req.method === 'GET') {
       const genes = geneMap.list();
       const totalGenes = genes.length;
       const topPatterns = genes.slice(0, 10).map(g => ({ code: g.failureCode, category: g.category, strategy: g.strategy, qValue: g.qValue, successCount: g.successCount }));
       const totalSuccess = genes.reduce((s, g) => s + (g.successCount || 0), 0);
       const totalAttempts = totalSuccess + genes.reduce((s, g) => s + (g.consecutiveFailures || 0), 0);
-      return json(res, { totalGenes, topPatterns, successRate: totalAttempts > 0 ? Math.round(totalSuccess / totalAttempts * 100) / 100 : 1 });
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'X-Auth-Mode': 'none',
+      });
+      return res.end(JSON.stringify({ totalGenes, topPatterns, successRate: totalAttempts > 0 ? Math.round(totalSuccess / totalAttempts * 100) / 100 : 1 }));
     }
 
     // GET / — welcome
