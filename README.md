@@ -9,7 +9,7 @@
 
 **Self-healing runtime for autonomous agents. Fix once, immune forever.**
 
-Your agent's API call failed. Helix diagnosed it, fixed it, and remembered. Next time — instant fix, zero cost.
+Your agent's API call failed. Helix diagnosed it, fixed it, and remembered. Next time — instant fix, zero cost. Think of stackoverflow + crowdstrike for agents.
 
 ```typescript
 // Before: hope for the best
