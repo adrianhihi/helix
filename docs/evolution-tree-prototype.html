@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helix — Evolution Phylogenetic Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0c0a07;
+    --amber: #f59e0b; --amber-dim: rgba(245,158,11,0.15);
+    --orange: #f97316; --blue: #3b82f6; --green: #10b981;
+    --purple: #8b5cf6; --red: #ef4444; --cyan: #06b6d4;
+    --white: #f5f0e8; --muted: #6b6155;
+    --glass-border: rgba(255,255,255,0.08);
+    --card: rgba(30,27,20,0.9);
+  }
+  body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--white); min-height: 100vh; overflow: hidden; }
+
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    background: rgba(12,10,7,0.88); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .topbar-logo { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--amber); }
+  .topbar-title { font-size: 18px; font-weight: 300; color: var(--white); }
+  .topbar-title span { font-weight: 600; color: var(--amber); }
+  .topbar-sub { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .filters { display: flex; gap: 6px; }
+  .filter-btn {
+    padding: 6px 14px; border-radius: 20px; font-family: 'Sora'; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--glass-border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s;
+  }
+  .filter-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--white); }
+  .filter-btn.active { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+
+  .stats-strip {
+    position: fixed; top: 58px; left: 0; right: 0; z-index: 90;
+    display: flex; padding: 0 28px;
+    background: rgba(12,10,7,0.75); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .stat-card { flex: 1; padding: 10px 16px; border-right: 1px solid var(--glass-border); }
+  .stat-card:last-child { border-right: none; }
+  .stat-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .stat-value { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+
+  #graph-container { position: fixed; top: 108px; left: 0; right: 320px; bottom: 60px; }
+  svg { width: 100%; height: 100%; }
+
+  .tooltip {
+    position: fixed; z-index: 200; padding: 10px 14px; border-radius: 10px;
+    background: var(--card); border: 1px solid var(--glass-border); backdrop-filter: blur(16px);
+    font-size: 12px; color: var(--white); pointer-events: none; opacity: 0; transition: opacity 0.15s;
+    max-width: 260px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .tooltip.show { opacity: 1; }
+  .tt-title { font-weight: 600; margin-bottom: 3px; }
+  .tt-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+
+  .side-panel {
+    position: fixed; top: 108px; right: 0; bottom: 60px; width: 320px; z-index: 95;
+    padding: 20px; overflow-y: auto;
+    background: rgba(12,10,7,0.9); border-left: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+  }
+  .panel-section { margin-bottom: 20px; }
+  .panel-title { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hm { padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); }
+  .hm-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .hm-val { font-size: 18px; font-weight: 600; margin-top: 2px; }
+  .hm-desc { font-size: 9px; color: var(--muted); }
+  .bar-row { display: flex; height: 14px; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .bar-seg { height: 100%; }
+  .bar-legend { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 8px; }
+  .bl-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--muted); }
+  .bl-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .legend {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+    display: flex; align-items: center; justify-content: center; gap: 20px;
+    padding: 12px 28px;
+    background: rgba(12,10,7,0.88); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--glass-border);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Animated particles on links */
+  @keyframes flowDot {
+    0% { offset-distance: 0%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  .flow-particle {
+    offset-distance: 0%;
+    animation: flowDot var(--duration) linear infinite;
+    animation-delay: var(--delay);
+  }
+
+  /* Node hover glow */
+  .node-circle { transition: filter 0.2s, stroke-width 0.2s; }
+  .node-circle:hover { filter: brightness(1.3) drop-shadow(0 0 8px currentColor); stroke-width: 3px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div>
+      <div class="topbar-logo">Helix · Evolution Tree</div>
+      <div class="topbar-title">Gene Map <span>Phylogenetic View</span></div>
+    </div>
+    <div class="topbar-sub" id="event-count"></div>
+  </div>
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="category">Categories</button>
+    <button class="filter-btn" data-filter="platform">Platforms</button>
+    <button class="filter-btn" data-filter="strategy">Strategies</button>
+  </div>
+</div>
+
+<div class="stats-strip">
+  <div class="stat-card"><div class="stat-label">Total Genes</div><div class="stat-value" style="color:var(--amber)" id="s-genes">0</div></div>
+  <div class="stat-card"><div class="stat-label">Self-Healed</div><div class="stat-value" style="color:var(--green)" id="s-healed">0</div></div>
+  <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value" style="color:var(--red)" id="s-failed">0</div></div>
+  <div class="stat-card"><div class="stat-label">Escalated</div><div class="stat-value" style="color:var(--orange)" id="s-esc">0</div></div>
+  <div class="stat-card"><div class="stat-label">Success Rate</div><div class="stat-value" style="color:var(--green)" id="s-rate">0%</div></div>
+  <div class="stat-card"><div class="stat-label">Avg Q-Value</div><div class="stat-value" style="color:var(--purple)" id="s-q">0</div></div>
+</div>
+
+<div id="graph-container"></div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tt-title" id="tt-title"></div>
+  <div class="tt-meta" id="tt-meta"></div>
+</div>
+
+<div class="side-panel">
+  <div class="panel-section">
+    <div class="panel-title">Ecosystem Health (Shannon Diversity)</div>
+    <div class="health-grid">
+      <div class="hm"><div class="hm-label">Shannon H'</div><div class="hm-val" style="color:var(--amber)" id="h-sh">0</div><div class="hm-desc">Strategy diversity</div></div>
+      <div class="hm"><div class="hm-label">Gene Richness</div><div class="hm-val" style="color:var(--blue)" id="h-ri">0</div><div class="hm-desc">Unique strategies</div></div>
+      <div class="hm"><div class="hm-label">Evenness</div><div class="hm-val" style="color:var(--green)" id="h-ev">0</div><div class="hm-desc">Distribution uniformity</div></div>
+      <div class="hm"><div class="hm-label">Gini Coefficient</div><div class="hm-val" style="color:var(--orange)" id="h-gi">0</div><div class="hm-desc">Usage inequality</div></div>
+    </div>
+  </div>
+  <div class="panel-section">
+    <div class="panel-title">Strategy Distribution</div>
+    <div class="bar-row" id="bar"></div>
+    <div class="bar-legend" id="bleg"></div>
+  </div>
+  <div class="panel-section">
+    <div class="panel-title">Platform Coverage</div>
+    <div id="plat-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Helix Core</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Error Category</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Platform</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>Strategy</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Success</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Failure</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>Escalated</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+// ══════════ DATA ══════════
+const categories = [
+  { id:"cat-nonce", label:"Nonce", events:12 },
+  { id:"cat-gas", label:"Gas / Fee", events:9 },
+  { id:"cat-balance", label:"Balance", events:7 },
+  { id:"cat-session", label:"Session", events:6 },
+  { id:"cat-network", label:"Network", events:8 },
+  { id:"cat-policy", label:"Policy", events:5 },
+  { id:"cat-rate", label:"Rate Limit", events:6 },
+  { id:"cat-timeout", label:"Timeout", events:4 },
+].map(d => ({...d, group:"category"}));
+
+const platforms = [
+  { id:"plat-coinbase", label:"Coinbase", events:17 },
+  { id:"plat-tempo", label:"Tempo", events:13 },
+  { id:"plat-privy", label:"Privy", events:7 },
+  { id:"plat-api", label:"API", events:21 },
+].map(d => ({...d, group:"platform"}));
+
+const strategies = [
+  { id:"strat-refresh", label:"refresh_nonce", count:12 },
+  { id:"strat-speedup", label:"speed_up", count:8 },
+  { id:"strat-backoff", label:"backoff_retry", count:10 },
+  { id:"strat-reduce", label:"reduce_request", count:5 },
+  { id:"strat-renew", label:"renew_session", count:6 },
+  { id:"strat-split", label:"split_tx", count:3 },
+  { id:"strat-remove", label:"remove_resubmit", count:4 },
+  { id:"strat-retry", label:"retry", count:7 },
+  { id:"strat-hold", label:"hold_notify", count:4 },
+].map(d => ({...d, group:"strategy"}));
+
+const outcomes = [];
+let oid = 0;
+function addO(cat, strat, s, f, e) {
+  for(let i=0;i<s;i++) outcomes.push({id:`o${oid++}`,parent:cat,strategy:strat,result:"success",group:"outcome"});
+  for(let i=0;i<f;i++) outcomes.push({id:`o${oid++}`,parent:cat,strategy:strat,result:"failure",group:"outcome"});
+  for(let i=0;i<e;i++) outcomes.push({id:`o${oid++}`,parent:cat,strategy:strat,result:"escalated",group:"outcome"});
+}
+addO("cat-nonce","strat-refresh",8,1,0);
+addO("cat-nonce","strat-remove",3,0,0);
+addO("cat-gas","strat-speedup",5,1,0);
+addO("cat-gas","strat-backoff",2,1,0);
+addO("cat-balance","strat-reduce",3,1,1);
+addO("cat-balance","strat-split",2,0,0);
+addO("cat-session","strat-renew",4,1,1);
+addO("cat-network","strat-backoff",4,1,0);
+addO("cat-network","strat-retry",3,0,0);
+addO("cat-policy","strat-hold",0,1,4);
+addO("cat-rate","strat-backoff",4,1,1);
+addO("cat-timeout","strat-backoff",3,1,0);
+
+const center = { id:"helix", label:"Helix", group:"core", events: outcomes.length };
+const allNodes = [center, ...categories, ...platforms, ...strategies, ...outcomes];
+const links = [];
+
+categories.forEach(c => links.push({source:"helix",target:c.id,type:"core-cat"}));
+platforms.forEach(p => links.push({source:"helix",target:p.id,type:"core-plat"}));
+
+const csSet = new Set();
+outcomes.forEach(o => {
+  const k = `${o.parent}→${o.strategy}`;
+  if(!csSet.has(k)){csSet.add(k);links.push({source:o.parent,target:o.strategy,type:"cat-strat"});}
+  links.push({source:o.strategy,target:o.id,type:"strat-out"});
+});
+
+[["plat-coinbase","cat-nonce"],["plat-coinbase","cat-gas"],["plat-coinbase","cat-policy"],["plat-coinbase","cat-rate"],
+ ["plat-tempo","cat-nonce"],["plat-tempo","cat-session"],["plat-tempo","cat-network"],
+ ["plat-privy","cat-session"],["plat-privy","cat-balance"],
+ ["plat-api","cat-rate"],["plat-api","cat-timeout"],["plat-api","cat-network"]
+].forEach(([s,t])=>links.push({source:s,target:t,type:"plat-cat"}));
+
+// ══════════ STATS ══════════
+const total = outcomes.length;
+const healed = outcomes.filter(o=>o.result==="success").length;
+const failed = outcomes.filter(o=>o.result==="failure").length;
+const esc = outcomes.filter(o=>o.result==="escalated").length;
+document.getElementById("s-genes").textContent = total;
+document.getElementById("s-healed").textContent = healed;
+document.getElementById("s-failed").textContent = failed;
+document.getElementById("s-esc").textContent = esc;
+document.getElementById("s-rate").textContent = ((healed/total)*100).toFixed(1)+"%";
+document.getElementById("s-q").textContent = (0.65+Math.random()*0.2).toFixed(3);
+document.getElementById("event-count").textContent = `${total} self-healing evolution events`;
+
+// Shannon
+const sc = {};
+strategies.forEach(s=>sc[s.label]=s.count);
+const ts = Object.values(sc).reduce((a,b)=>a+b,0);
+let sh = 0; Object.values(sc).forEach(c=>{const p=c/ts;if(p>0)sh-=p*Math.log(p);});
+const ri = strategies.length;
+const ev = sh/Math.log(ri);
+const sorted = Object.values(sc).sort((a,b)=>a-b);
+let gs = 0; sorted.forEach((v,i)=>gs+=(2*(i+1)-sorted.length-1)*v);
+const gi = gs/(sorted.length*ts);
+document.getElementById("h-sh").textContent = sh.toFixed(3);
+document.getElementById("h-ri").textContent = ri;
+document.getElementById("h-ev").textContent = ev.toFixed(3);
+document.getElementById("h-gi").textContent = gi.toFixed(3);
+
+// Strategy bar
+const sColors = ["#ef4444","#f97316","#f59e0b","#10b981","#06b6d4","#3b82f6","#8b5cf6","#ec4899","#6b7280"];
+const sortedS = Object.entries(sc).sort((a,b)=>b[1]-a[1]);
+const barEl = document.getElementById("bar");
+const blegEl = document.getElementById("bleg");
+sortedS.forEach(([name,count],i) => {
+  const pct = (count/ts*100).toFixed(1);
+  const c = sColors[i%sColors.length];
+  const seg = document.createElement("div"); seg.className="bar-seg"; seg.style.width=pct+"%"; seg.style.background=c;
+  barEl.appendChild(seg);
+  blegEl.innerHTML += `<div class="bl-item"><div class="bl-dot" style="background:${c}"></div>${name} (${count})</div>`;
+});
+
+// Platform coverage
+const platList = document.getElementById("plat-list");
+platforms.forEach(p => {
+  platList.innerHTML += `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(59,130,246,0.15);">
+    <div style="width:8px;height:8px;border-radius:50%;background:var(--blue)"></div>
+    <span style="font-size:12px;font-weight:500;color:var(--white);flex:1">${p.label}</span>
+    <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--blue)">${p.events} patterns</span>
+  </div>`;
+});
+
+// ══════════ D3 GRAPH ══════════
+const container = document.getElementById("graph-container");
+const W = container.clientWidth, H = container.clientHeight;
+const svg = d3.select("#graph-container").append("svg").attr("viewBox",[0,0,W,H]);
+
+// Defs
+const defs = svg.append("defs");
+// Glow filter
+const glow = defs.append("filter").attr("id","glow").attr("x","-50%").attr("y","-50%").attr("width","200%").attr("height","200%");
+glow.append("feGaussianBlur").attr("stdDeviation","6").attr("result","blur");
+const glowMerge = glow.append("feMerge");
+glowMerge.append("feMergeNode").attr("in","blur");
+glowMerge.append("feMergeNode").attr("in","SourceGraphic");
+
+// Arrow markers for animated particles
+defs.append("marker").attr("id","arrow").attr("viewBox","0 -3 6 6").attr("refX",6).attr("markerWidth",4).attr("markerHeight",4).attr("orient","auto")
+  .append("path").attr("d","M0,-3L6,0L0,3").attr("fill","rgba(245,158,11,0.4)");
+
+const g = svg.append("g");
+const zoom = d3.zoom().scaleExtent([0.2,5]).on("zoom",e=>g.attr("transform",e.transform));
+svg.call(zoom);
+svg.call(zoom.transform, d3.zoomIdentity.translate(W/2,H/2).scale(0.8).translate(-W/2,-H/2));
+
+function nColor(d) {
+  if(d.group==="core") return "#8b5cf6";
+  if(d.group==="category") return "#f59e0b";
+  if(d.group==="platform") return "#3b82f6";
+  if(d.group==="strategy") return "#06b6d4";
+  if(d.result==="success") return "#10b981";
+  if(d.result==="failure") return "#ef4444";
+  return "#f97316";
+}
+function nRadius(d) {
+  if(d.group==="core") return 32;
+  if(d.group==="category") return 16 + (d.events||0)*0.4;
+  if(d.group==="platform") return 14 + (d.events||0)*0.3;
+  if(d.group==="strategy") return 10 + (d.count||0)*0.3;
+  return 4;
+}
+function lColor(d) {
+  if(d.type==="core-cat") return "rgba(245,158,11,0.3)";
+  if(d.type==="core-plat") return "rgba(59,130,246,0.25)";
+  if(d.type==="cat-strat") return "rgba(6,182,212,0.2)";
+  if(d.type==="plat-cat") return "rgba(139,92,246,0.15)";
+  return "rgba(255,255,255,0.04)";
+}
+function lWidth(d) {
+  if(d.type==="core-cat"||d.type==="core-plat") return 2;
+  if(d.type==="cat-strat"||d.type==="plat-cat") return 1.5;
+  return 0.5;
+}
+
+const sim = d3.forceSimulation(allNodes)
+  .force("link", d3.forceLink(links).id(d=>d.id).distance(d=>{
+    if(d.type==="core-cat"||d.type==="core-plat") return 140;
+    if(d.type==="cat-strat") return 90;
+    if(d.type==="plat-cat") return 110;
+    return 35;
+  }).strength(d=> d.type==="strat-out"? 0.9 : 0.3))
+  .force("charge", d3.forceManyBody().strength(d=>{
+    if(d.group==="core") return -600;
+    if(d.group==="category") return -250;
+    if(d.group==="platform") return -200;
+    if(d.group==="strategy") return -100;
+    return -15;
+  }))
+  .force("center", d3.forceCenter(W/2, H/2))
+  .force("collision", d3.forceCollide().radius(d=>nRadius(d)+4));
+
+// Links
+const linkSel = g.append("g").selectAll("line").data(links).join("line")
+  .attr("stroke", lColor).attr("stroke-width", lWidth).attr("stroke-opacity",1);
+
+// Animated particles on major links
+const particleLinks = links.filter(d=>d.type!=="strat-out");
+const particleGroup = g.append("g");
+
+// We'll draw animated circles that travel along links
+function createParticles() {
+  // Remove old
+  particleGroup.selectAll("*").remove();
+  
+  particleLinks.forEach((link, i) => {
+    const numParticles = link.type === "core-cat" || link.type === "core-plat" ? 3 : 1;
+    for (let p = 0; p < numParticles; p++) {
+      particleGroup.append("circle")
+        .datum(link)
+        .attr("r", link.type.startsWith("core") ? 2.5 : 1.5)
+        .attr("fill", lColor(link))
+        .attr("opacity", 0)
+        .attr("class", `particle particle-${i}-${p}`)
+        .attr("data-delay", (p * (2000 + Math.random()*2000)))
+        .attr("data-duration", 2000 + Math.random()*1500)
+        .attr("data-index", i)
+        .attr("data-p", p);
+    }
+  });
+}
+
+// Animate particles along links
+function animateParticles() {
+  particleGroup.selectAll("circle").each(function() {
+    const el = d3.select(this);
+    const link = el.datum();
+    const delay = +el.attr("data-delay");
+    const duration = +el.attr("data-duration");
+    
+    function loop() {
+      const sx = typeof link.source === "object" ? link.source.x : 0;
+      const sy = typeof link.source === "object" ? link.source.y : 0;
+      const tx = typeof link.target === "object" ? link.target.x : 0;
+      const ty = typeof link.target === "object" ? link.target.y : 0;
+      
+      el.attr("cx", sx).attr("cy", sy).attr("opacity", 0)
+        .transition().delay(delay).duration(200).attr("opacity", 0.8)
+        .transition().duration(duration).ease(d3.easeLinear)
+          .attr("cx", tx).attr("cy", ty)
+        .transition().duration(200).attr("opacity", 0)
+        .on("end", loop);
+    }
+    loop();
+  });
+}
+
+// Nodes
+const nodeSel = g.append("g").selectAll("g").data(allNodes).join("g")
+  .attr("cursor","pointer")
+  .call(d3.drag()
+    .on("start",(e,d)=>{if(!e.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;})
+    .on("drag",(e,d)=>{d.fx=e.x;d.fy=e.y;})
+    .on("end",(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;})
+  );
+
+// Core outer glow ring
+nodeSel.filter(d=>d.group==="core").append("circle")
+  .attr("r",42).attr("fill","none")
+  .attr("stroke","rgba(139,92,246,0.15)").attr("stroke-width",1)
+  .attr("stroke-dasharray","4 4");
+
+nodeSel.filter(d=>d.group==="core").append("circle")
+  .attr("r",38).attr("fill","rgba(139,92,246,0.06)")
+  .attr("filter","url(#glow)");
+
+// Main circles
+nodeSel.append("circle")
+  .attr("class","node-circle")
+  .attr("r", nRadius)
+  .attr("fill", nColor)
+  .attr("fill-opacity", d=>d.group==="outcome"?0.7:1)
+  .attr("stroke", nColor)
+  .attr("stroke-width", d=>d.group==="outcome"?0:1.5)
+  .attr("stroke-opacity",0.4)
+  .style("cursor","pointer");
+
+// Labels INSIDE nodes (for non-outcome, non-core)
+nodeSel.filter(d=>d.group==="category"||d.group==="platform"||d.group==="strategy").append("text")
+  .text(d => d.label)
+  .attr("dy","0.35em")
+  .attr("text-anchor","middle")
+  .attr("font-family","Sora, sans-serif")
+  .attr("font-size", d => {
+    const r = nRadius(d);
+    if(d.group==="strategy") return Math.min(8, r*0.7);
+    return Math.min(10, r*0.65);
+  })
+  .attr("font-weight",600)
+  .attr("fill","#f5f0e8")
+  .attr("stroke","rgba(12,10,7,0.6)")
+  .attr("stroke-width",2.5)
+  .attr("paint-order","stroke")
+  .attr("pointer-events","none");
+
+// Core label
+nodeSel.filter(d=>d.group==="core").append("text")
+  .text("HELIX")
+  .attr("dy","0.35em")
+  .attr("text-anchor","middle")
+  .attr("font-family","JetBrains Mono, monospace")
+  .attr("font-size",11)
+  .attr("font-weight",600)
+  .attr("fill","#f5f0e8")
+  .attr("letter-spacing","2px")
+  .attr("pointer-events","none");
+
+// Event count below node
+nodeSel.filter(d=>(d.events||d.count)&&d.group!=="core").append("text")
+  .text(d=> d.events ? `${d.events}` : `${d.count}`)
+  .attr("dy", d => nRadius(d) + 12)
+  .attr("text-anchor","middle")
+  .attr("font-family","JetBrains Mono, monospace")
+  .attr("font-size",9)
+  .attr("font-weight",500)
+  .attr("fill","rgba(245,240,232,0.35)")
+  .attr("pointer-events","none");
+
+// Tooltip
+const tooltip = document.getElementById("tooltip");
+nodeSel.on("mouseover",(e,d)=>{
+  const ttT = document.getElementById("tt-title");
+  const ttM = document.getElementById("tt-meta");
+  if(d.group==="outcome"){
+    ttT.textContent = `Repair: ${d.result}`;
+    const strat = strategies.find(s=>s.id===d.strategy);
+    ttM.textContent = `Strategy: ${strat?strat.label:"?"} | Category: ${d.parent}`;
+  } else if(d.group==="core") {
+    ttT.textContent = "Helix Core";
+    ttM.textContent = `${total} total events | ${healed} healed | ${failed} failed`;
+  } else {
+    ttT.textContent = d.label;
+    ttM.textContent = `${d.group} | ${d.events?d.events+" events":d.count?d.count+" uses":""}`;
+  }
+  tooltip.classList.add("show");
+  tooltip.style.left = (e.pageX+14)+"px";
+  tooltip.style.top = (e.pageY-12)+"px";
+  
+  // Highlight connected
+  const connected = new Set();
+  links.forEach(l => {
+    const sid = typeof l.source==="object"?l.source.id:l.source;
+    const tid = typeof l.target==="object"?l.target.id:l.target;
+    if(sid===d.id) connected.add(tid);
+    if(tid===d.id) connected.add(sid);
+  });
+  connected.add(d.id);
+  
+  nodeSel.attr("opacity", n => connected.has(n.id) ? 1 : 0.1);
+  linkSel.attr("opacity", l => {
+    const sid = typeof l.source==="object"?l.source.id:l.source;
+    const tid = typeof l.target==="object"?l.target.id:l.target;
+    return (sid===d.id||tid===d.id) ? 1 : 0.03;
+  });
+}).on("mousemove",e=>{
+  tooltip.style.left = (e.pageX+14)+"px";
+  tooltip.style.top = (e.pageY-12)+"px";
+}).on("mouseout",()=>{
+  tooltip.classList.remove("show");
+  nodeSel.attr("opacity",1);
+  linkSel.attr("opacity",1);
+});
+
+// Tick
+sim.on("tick",()=>{
+  linkSel.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+         .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+  nodeSel.attr("transform",d=>`translate(${d.x},${d.y})`);
+});
+
+// Start particles after simulation stabilizes
+sim.on("end", () => {
+  createParticles();
+  animateParticles();
+});
+// Also start after 3 seconds in case simulation doesn't fully end
+setTimeout(() => { createParticles(); animateParticles(); }, 3000);
+
+// Filters
+document.querySelectorAll(".filter-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const f = btn.dataset.filter;
+    nodeSel.transition().duration(300).attr("opacity",d=>{
+      if(f==="all") return 1;
+      if(d.group==="core") return 1;
+      if(f==="category"&&d.group==="category") return 1;
+      if(f==="platform"&&d.group==="platform") return 1;
+      if(f==="strategy"&&d.group==="strategy") return 1;
+      return 0.06;
+    });
+    linkSel.transition().duration(300).attr("opacity",d=>{
+      if(f==="all") return 1;
+      if(f==="category"&&(d.type==="core-cat")) return 1;
+      if(f==="platform"&&(d.type==="core-plat"||d.type==="plat-cat")) return 1;
+      if(f==="strategy"&&(d.type==="cat-strat")) return 1;
+      return 0.03;
+    });
+  });
+});
+</script>
+</body>
+</html>
