@@ -283,7 +283,7 @@ export function createApiServer(opts: ApiServerOptions = {}) {
 
     // GET /health
     if (path === '/health' && req.method === 'GET') {
-      return json(res, { status: 'ok', version: '1.9.0', schemaVersion: getSchemaVersion(geneMap.database), targetSchemaVersion: CURRENT_SCHEMA_VERSION, uptime: process.uptime() });
+      return json(res, { status: 'ok', version: '2.6.0', schemaVersion: getSchemaVersion(geneMap.database), targetSchemaVersion: CURRENT_SCHEMA_VERSION, uptime: process.uptime() });
     }
 
     // GET /schema

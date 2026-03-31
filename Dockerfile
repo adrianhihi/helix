@@ -1,6 +1,6 @@
 # ── Build stage ──
 FROM node:20-alpine AS builder
-ARG CACHE_BUST=2
+ARG CACHE_BUST=3
 
 WORKDIR /app
 
