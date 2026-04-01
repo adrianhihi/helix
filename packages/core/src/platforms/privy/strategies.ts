@@ -17,7 +17,7 @@ export function privyConstruct(failure: FailureClassification): RepairCandidate[
 
   // For categories that overlap with Tempo (signature, balance, network),
   // Privy can add platform-specific candidates alongside Tempo's:
-  if (failure.platform === 'privy' && (failure.category === 'signature' || failure.category === 'nonce')) {
+  if (failure.platform === 'privy' && failure.category === 'signature') {
     return [
       { id: 'refresh_nonce_from_chain', strategy: 'refresh_nonce', description: 'Sync wallet nonce with on-chain state', estimatedCostUsd: 0, estimatedSpeedMs: 200, requirements: [], score: 0, successProbability: 0.93, platform: 'privy' },
       { id: 'cancel_pending_txs', strategy: 'cancel_pending_txs', description: 'Cancel stuck pending transactions to reset nonce', estimatedCostUsd: 0.01, estimatedSpeedMs: 600, requirements: [], score: 0, successProbability: 0.80, platform: 'privy' },

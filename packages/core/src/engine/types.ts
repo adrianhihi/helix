@@ -23,7 +23,6 @@ export type ErrorCode =
   | 'gas-too-low'
   | 'gas-spike'
   | 'gas-limit-exceeded'
-  | 'nonce-mismatch'
   | 'paymaster-balance-low'
   | 'wallet-locked'
   | 'unknown';
@@ -45,7 +44,6 @@ export type FailureCategory =
   | 'policy'
   | 'auth'
   | 'gas'
-  | 'nonce'
   | 'unknown';
 
 export type Severity = 'low' | 'medium' | 'high' | 'critical';

@@ -6,7 +6,6 @@ export interface RootCause {
 }
 
 const ROOT_CAUSE_MAP: Record<string, RootCause> = {
-  'nonce-mismatch:nonce': { hint: 'concurrent_wallet_access', likelyCause: 'Multiple agents sharing one wallet cause nonce conflicts', suggestedAction: 'Use separate wallets per agent, or enable Helix nonce manager', isLikelySystematic: true },
   'verification-failed:signature': { hint: 'concurrent_wallet_access', likelyCause: 'Multiple agents sharing one wallet cause nonce conflicts', suggestedAction: 'Use separate wallets per agent, or enable Helix nonce manager', isLikelySystematic: true },
   'payment-insufficient:balance': { hint: 'underfunded_wallet', likelyCause: 'Wallet balance too low for transaction + gas', suggestedAction: 'Top up wallet or reduce transaction amount', isLikelySystematic: false },
   'token-uninitialized:network': { hint: 'wrong_chain_config', likelyCause: 'Agent configured for wrong chain (testnet vs mainnet, or wrong L2)', suggestedAction: 'Check chainId and RPC URL configuration', isLikelySystematic: true },

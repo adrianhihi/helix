@@ -12,7 +12,7 @@ export function privyPerceive(error: Error, _context?: Record<string, unknown>):
 
   // Nonce desync — wallet internal nonce != chain nonce
   if (msg.includes('nonce') && msg.includes('mismatch') && (msg.includes('wallet') || msg.includes('internal')))
-    return { code: 'nonce-mismatch', category: 'nonce', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
+    return { code: 'verification-failed', category: 'signature', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
 
   // Gas sponsor exhausted — Privy auto-sponsor ran out
   if (msg.includes('gas sponsorship') || (msg.includes('sponsor') && msg.includes('depleted')))
@@ -48,7 +48,7 @@ export function privyPerceive(error: Error, _context?: Record<string, unknown>):
 
   // #NEW-2: Transaction broadcast failure — nonce conflict
   if (msg.includes('broadcast') && (msg.includes('nonce') || msg.includes('sequencing')))
-    return { code: 'nonce-mismatch', category: 'nonce', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
+    return { code: 'verification-failed', category: 'signature', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
 
   // #NEW-3: Transaction broadcast failure — invalid params
   if (msg.includes('broadcast') && (msg.includes('invalid') || msg.includes('malformed')))

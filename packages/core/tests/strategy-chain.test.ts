@@ -97,7 +97,7 @@ describe('Gene Map chain storage', () => {
 
   it('stores chain strategy with + separator', () => {
     gm.store({
-      failureCode: 'nonce-mismatch', category: 'nonce',
+      failureCode: 'verification-failed', category: 'signature',
       strategy: 'refresh_nonce+speed_up_transaction',
       params: {}, successCount: 1, avgRepairMs: 200,
       platforms: ['tempo'], qValue: 0.7, consecutiveFailures: 0,
@@ -154,7 +154,7 @@ describe('Chain override propagation', () => {
 
     // Store a chain gene so it takes the IMMUNE+execute path
     gm.store({
-      failureCode: 'nonce-mismatch', category: 'nonce',
+      failureCode: 'verification-failed', category: 'signature',
       strategy: 'refresh_nonce+speed_up_transaction',
       params: {}, successCount: 10, avgRepairMs: 200,
       platforms: ['tempo'], qValue: 0.9, consecutiveFailures: 0,
@@ -246,7 +246,7 @@ describe('Chain override propagation', () => {
     for (const a of defaultAdapters) engine.registerAdapter(a);
 
     gm.store({
-      failureCode: 'nonce-mismatch', category: 'nonce',
+      failureCode: 'verification-failed', category: 'signature',
       strategy: 'refresh_nonce+speed_up_transaction',
       params: {}, successCount: 10, avgRepairMs: 200,
       platforms: ['tempo'], qValue: 0.9, consecutiveFailures: 0,

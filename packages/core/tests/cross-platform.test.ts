@@ -17,7 +17,7 @@ describe('Cross-Platform Immunity', () => {
   afterEach(() => { geneMap.close(); });
 
   it('seed genes provide cross-platform immunity from day 1', async () => {
-    // Seed gene for nonce-mismatch/nonce covers [tempo, privy, coinbase]
+    // Seed gene for verification-failed/signature covers [tempo, privy, coinbase]
     // A new Privy nonce error should be IMMUNE immediately
     const privyError = new Error('Transaction nonce mismatch: wallet internal nonce=47 but chain nonce=45');
     const r = await engine.repair(privyError);

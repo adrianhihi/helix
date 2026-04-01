@@ -1,7 +1,7 @@
 import type { GeneCapsule } from './types.js';
 
 export const SEED_GENES: Omit<GeneCapsule, 'id'>[] = [
-  { failureCode: 'nonce-mismatch', category: 'nonce', strategy: 'refresh_nonce', params: {}, successCount: 10, avgRepairMs: 180, platforms: ['tempo', 'privy', 'coinbase'], qValue: 0.85, consecutiveFailures: 0 },
+  { failureCode: 'verification-failed', category: 'signature', strategy: 'refresh_nonce', params: {}, successCount: 10, avgRepairMs: 180, platforms: ['tempo', 'privy', 'coinbase'], qValue: 0.85, consecutiveFailures: 0 },
   { failureCode: 'payment-insufficient', category: 'balance', strategy: 'reduce_request', params: {}, successCount: 8, avgRepairMs: 45, platforms: ['tempo', 'privy', 'coinbase'], qValue: 0.82, consecutiveFailures: 0 },
   { failureCode: 'rate-limited', category: 'auth', strategy: 'backoff_retry', params: { defaultDelayMs: 2000 }, successCount: 15, avgRepairMs: 2100, platforms: ['generic', 'coinbase'], qValue: 0.88, consecutiveFailures: 0 },
   { failureCode: 'token-uninitialized', category: 'network', strategy: 'switch_network', params: {}, successCount: 6, avgRepairMs: 210, platforms: ['tempo', 'privy', 'coinbase'], qValue: 0.80, consecutiveFailures: 0 },

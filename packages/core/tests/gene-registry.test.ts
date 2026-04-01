@@ -16,7 +16,7 @@ describe('Gene Registry Client', () => {
   });
 
   it('push sends qualified Genes', async () => {
-    for (let i = 0; i < 5; i++) gm.recordSuccess('nonce-mismatch', 'nonce', 100);
+    for (let i = 0; i < 5; i++) gm.recordSuccess('verification-failed', 'signature', 100);
 
     mockFetch.mockResolvedValueOnce({
       ok: true, json: async () => ({ accepted: 1, rejected: 0 }),
@@ -71,7 +71,7 @@ describe('Gene Registry Client', () => {
       ok: true,
       json: async () => ({
         genes: [{
-          failureCode: 'nonce-mismatch', failureCategory: 'nonce',
+          failureCode: 'verification-failed', failureCategory: 'signature',
           strategy: 'refresh_nonce', qValue: 0.99, successCount: 1000,
           platforms: ['tempo'], createdAt: Date.now(),
         }],
@@ -108,7 +108,7 @@ describe('Gene Registry Client', () => {
   });
 
   it('push includes auth header when apiKey provided', async () => {
-    for (let i = 0; i < 5; i++) gm.recordSuccess('nonce-mismatch', 'nonce', 100);
+    for (let i = 0; i < 5; i++) gm.recordSuccess('verification-failed', 'signature', 100);
 
     mockFetch.mockResolvedValueOnce({
       ok: true, json: async () => ({ accepted: 1, rejected: 0 }),

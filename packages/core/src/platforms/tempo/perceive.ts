@@ -16,8 +16,8 @@ export function tempoPerceive(error: Error, _context?: Record<string, unknown>):
   if (errorCode === 'method-unsupported' || msg.includes('method-unsupported') || (msg.includes('requires') && msg.includes('payment')))
     return { code: 'method-unsupported', category: 'currency', severity: 'medium', platform: 'tempo', details: msg, timestamp: Date.now() };
 
-  if (errorCode === 'verification-failed' || errorCode === 'nonce-mismatch' || msg.includes('nonce mismatch') || msg.includes('verification-failed') || (msg.includes('nonce') && msg.includes('once') && (msg.includes('lower') || msg.includes('higher') || msg.includes('too'))) || (msg.toLowerCase().includes('nonce') && msg.toLowerCase().includes('transaction')))
-    return { code: 'nonce-mismatch', category: 'nonce', severity: 'high', platform: 'tempo', details: msg, timestamp: Date.now() };
+  if (errorCode === 'verification-failed' || msg.includes('nonce mismatch') || msg.includes('verification-failed') || (msg.includes('nonce') && msg.includes('once') && (msg.includes('lower') || msg.includes('higher') || msg.includes('too'))) || (msg.toLowerCase().includes('nonce') && msg.toLowerCase().includes('transaction')))
+    return { code: 'verification-failed', category: 'signature', severity: 'high', platform: 'tempo', details: msg, timestamp: Date.now() };
 
   if (errorCode === 'tx-reverted' || (msg.includes('batch') && msg.includes('reverted')))
     return { code: 'tx-reverted', category: 'batch', severity: 'high', platform: 'tempo', details: msg, timestamp: Date.now() };

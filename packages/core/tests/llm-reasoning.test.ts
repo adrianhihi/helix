@@ -7,9 +7,9 @@ describe('Gene Reasoning', () => {
   afterEach(() => { gm.close(); });
 
   it('updateReasoning stores reasoning in gene', () => {
-    // Seed gene exists for nonce-mismatch/nonce
-    gm.updateReasoning('nonce-mismatch', 'nonce', 'Nonce errors occur when cached nonce diverges from chain state.');
-    const gene = gm.lookup('nonce-mismatch', 'nonce');
+    // Seed gene exists for verification-failed/signature
+    gm.updateReasoning('verification-failed', 'signature', 'Nonce errors occur when cached nonce diverges from chain state.');
+    const gene = gm.lookup('verification-failed', 'signature');
     expect(gene!.reasoning).toBe('Nonce errors occur when cached nonce diverges from chain state.');
   });
 

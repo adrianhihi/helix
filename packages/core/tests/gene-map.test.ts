@@ -16,8 +16,8 @@ describe('GeneMap', () => {
   });
 
   it('lookup is by (code, category) not by platform', () => {
-    // Seed gene exists for nonce-mismatch/nonce
-    const gene = geneMap.lookup('nonce-mismatch', 'nonce');
+    // Seed gene exists for verification-failed/signature
+    const gene = geneMap.lookup('verification-failed', 'signature');
     expect(gene).not.toBeNull();
     expect(gene!.strategy).toBe('refresh_nonce');
   });

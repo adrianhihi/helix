@@ -20,7 +20,6 @@ export function tempoConstruct(failure: FailureClassification): RepairCandidate[
         { id: 'switch_service', strategy: 'switch_service', description: 'Switch to service that accepts current currency', estimatedCostUsd: 0, estimatedSpeedMs: 200, requirements: ['alt_service'], score: 0, successProbability: 0.80, platform: 'tempo' },
       ];
     case 'signature':
-    case 'nonce':
       return [
         { id: 'refresh_nonce', strategy: 'refresh_nonce', description: 'Refresh nonce from Tempo RPC and re-sign', estimatedCostUsd: 0, estimatedSpeedMs: 400, requirements: [], score: 0, successProbability: 0.90, platform: 'tempo' },
         { id: 'rederive_key', strategy: 'rederive_key', description: 'Re-derive signing key from wallet', estimatedCostUsd: 0, estimatedSpeedMs: 600, requirements: ['wallet_access'], score: 0, successProbability: 0.80, platform: 'tempo' },

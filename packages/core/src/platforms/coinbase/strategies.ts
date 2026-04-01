@@ -15,7 +15,7 @@ export function coinbaseConstruct(failure: FailureClassification): RepairCandida
     ];
   }
 
-  if (failure.platform === 'coinbase' && (failure.category === 'signature' || failure.category === 'nonce')) {
+  if (failure.platform === 'coinbase' && failure.category === 'signature') {
     return [
       { id: 'cb_refresh_nonce', strategy: 'refresh_nonce', description: 'Fetch nonce from EntryPoint for smart account', estimatedCostUsd: 0, estimatedSpeedMs: 200, requirements: ['rpcUrl'], score: 0, successProbability: 0.93, platform: 'coinbase' },
     ];

@@ -26,8 +26,8 @@ describe('Tempo perceive', () => {
     const error = new Error('Transaction signature invalid: nonce mismatch (expected 42, got 41)');
     const r = tempoPerceive(error);
     expect(r).not.toBeNull();
-    expect(r!.code).toBe('nonce-mismatch');
-    expect(r!.category).toBe('nonce');
+    expect(r!.code).toBe('verification-failed');
+    expect(r!.category).toBe('signature');
   });
 
   it('classifies TIP20 Uninitialized (real mppx error)', () => {
@@ -84,8 +84,8 @@ describe('Privy perceive', () => {
     const error = new Error('Transaction nonce mismatch: wallet internal nonce=47 but chain nonce=45');
     const r = privyPerceive(error);
     expect(r).not.toBeNull();
-    expect(r!.code).toBe('nonce-mismatch');
-    expect(r!.category).toBe('nonce');
+    expect(r!.code).toBe('verification-failed');
+    expect(r!.category).toBe('signature');
   });
 
   it('classifies gas sponsor depleted', () => {
@@ -116,8 +116,8 @@ describe('Privy perceive', () => {
     const error = new Error('transaction_broadcast_failure: Nonce conflicts or sequencing errors');
     const r = privyPerceive(error);
     expect(r).not.toBeNull();
-    expect(r!.code).toBe('nonce-mismatch');
-    expect(r!.category).toBe('nonce');
+    expect(r!.code).toBe('verification-failed');
+    expect(r!.category).toBe('signature');
   });
 
   it('classifies broadcast invalid params (new scenario)', () => {

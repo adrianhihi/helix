@@ -62,7 +62,7 @@ export function coinbasePerceive(error: Error, _context?: Record<string, unknown
     return { code: 'gas-estimation-failed', category: 'gas', severity: 'high', platform, details: msg, timestamp: Date.now() };
 
   if (msg.includes('AA25') || msg.includes('Invalid account nonce'))
-    return { code: 'nonce-mismatch', category: 'nonce', severity: 'high', platform, details: msg, timestamp: Date.now() };
+    return { code: 'verification-failed', category: 'signature', severity: 'high', platform, details: msg, timestamp: Date.now() };
 
   // ERC20 balance exceeded (must be before generic revert check)
   if (msg.toLowerCase().includes('exceeds balance') || (msg.includes('ERC20') && msg.includes('transfer amount')))

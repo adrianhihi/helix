@@ -61,7 +61,7 @@ describe('PcecEngine', () => {
 
   it('includes root cause in explanation', async () => {
     const error = new Error('Transaction signature invalid: nonce mismatch');
-    (error as any).code = 'nonce-mismatch';
+    (error as any).code = 'verification-failed';
     const result = await engine.repair(error);
     // Seed gene makes this IMMUNE, but root cause hint is in perceive
     expect(result.failure.rootCauseHint).toBe('concurrent_wallet_access');
@@ -107,7 +107,7 @@ describe('Explain', () => {
   it('provides explanation with root cause for immune hits', async () => {
     const { engine, geneMap } = createTestEngine({ mode: 'observe' });
     const error = new Error('Transaction signature invalid: nonce mismatch');
-    (error as any).code = 'nonce-mismatch';
+    (error as any).code = 'verification-failed';
     const result = await engine.repair(error);
     expect(result.explanation).toContain('IMMUNE');
     expect(result.explanation).toContain('refresh_nonce');
