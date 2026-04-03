@@ -2,12 +2,14 @@
 
 [![npm](https://img.shields.io/npm/v/@helix-agent/core?color=cb3837)](https://www.npmjs.com/package/@helix-agent/core)
 [![downloads](https://img.shields.io/npm/dw/@helix-agent/core?color=blue)](https://www.npmjs.com/package/@helix-agent/core)
-[![tests](https://img.shields.io/badge/tests-541%2B-brightgreen)](#)
+[![tests](https://img.shields.io/badge/tests-526%2B-brightgreen)](#)
 [![stars](https://img.shields.io/github/stars/adrianhihi/helix?style=flat&color=yellow)](https://github.com/adrianhihi/helix/stargazers)
 [![license](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/helix-agent-sdk?color=3776AB)](https://pypi.org/project/helix-agent-sdk/)
 
 **Self-healing runtime for autonomous agents. Fix once, immune forever.**
+
+**Agent payment intelligence** — predict costs, optimize execution, fix failures. Powered by [VialOS Runtime](https://github.com/adrianhihi/vialos-runtime).
 
 Your agent's API call failed. Helix diagnosed it, fixed it, and remembered. Next time — instant fix, zero cost. Think of stackoverflow + crowdstrike for agents.
 
@@ -66,9 +68,9 @@ Three modes, three risk levels:
 | `auto` | Diagnose + fix params + retry | Low — only changes how, never what |
 | `full` | Auto + fund movement strategies | Medium |
 
-## Powered by Vial
+## Powered by VialOS Runtime
 
-Helix is built on **[Vial](packages/vial-core/)** — a generic self-healing framework for any autonomous agent. Vial provides the PCEC engine, Gene Map, and all learning modules. Helix adds payment-specific adapters on top.
+Helix is the first vertical product of **[VialOS](https://github.com/adrianhihi/vialos-runtime)** — an AI agent operating system. The VialOS Runtime provides the PCEC engine, Gene Map, and all learning modules. Helix adds payment-specific adapters on top.
 
 ```
 @vial/core              Generic self-healing engine
@@ -115,6 +117,21 @@ const myAdapter: PlatformAdapter = {
 const safeCall = wrap(myFunction, { adapter: myAdapter, mode: 'auto' });
 ```
 
+## VialOS Beta Features
+
+Helix runs on the VialOS Runtime. Enable VialOS integration with `--beta`:
+
+```bash
+npx @helix-agent/core serve --port 7842 --mode observe --beta
+```
+
+This activates:
+- `GET /vial/status` — VialOS runtime information (13 modules, 5 adapters)
+- VialOS metadata in `GET /health` response
+- "Powered by VialOS Runtime" dashboard badge
+
+Without `--beta`, Helix behaves identically to the stable release.
+
 ## What Makes This Different
 
 | | Sentry/Datadog | Simple retry | Helix |
@@ -154,12 +171,13 @@ curl -X POST http://localhost:7842/repair \
 ## CLI
 
 ```bash
-npx helix serve --port 7842          # Start server + dashboard
-npx helix scan ./src                 # Scan codebase for error patterns
-npx helix simulate "nonce too low"   # Dry-run diagnosis
-npx helix self-play 10               # Autonomous error discovery
-npx helix dream                      # Memory consolidation
-npx helix discover                   # Find adapter gaps
+# ⚠️ Use @helix-agent/core — "npx helix" installs a WRONG third-party package
+npx @helix-agent/core serve --port 7842          # Start server + dashboard
+npx @helix-agent/core scan ./src                 # Scan codebase for error patterns
+npx @helix-agent/core simulate "nonce too low"   # Dry-run diagnosis
+npx @helix-agent/core self-play 10               # Autonomous error discovery
+npx @helix-agent/core dream                      # Memory consolidation
+npx @helix-agent/core discover                   # Find adapter gaps
 ```
 
 ## Architecture
@@ -194,10 +212,9 @@ Level 3: Architecture Evolution
 ## Stats
 
 ```
-541+ tests across 3 packages
-54 source files
+526+ tests across 55 test files
 Schema v12 (auto-migrating)
-40+ payment error patterns
+61 error patterns (40 payment + 21 API)
 21 API error patterns
 7 safety constraints
 12 repair strategies
@@ -210,16 +227,17 @@ Schema v12 (auto-migrating)
 - [x] **Platform Adapters** — Coinbase, Tempo, Privy, Generic HTTP
 - [x] **Self-Evolution** — Meta-Learning, Self-Play, Federated, Gene Dream
 - [x] **Safety** — 7 constraints, adversarial defense, cost ceilings
-- [x] **CI/CD Integration** — `npx helix scan` for GitHub Actions
+- [x] **CI/CD Integration** — `npx @helix-agent/core scan` for GitHub Actions
 - [x] **Vial Framework** — Generic core extracted (`@vial/core`)
 - [x] **API Adapter** — Second vertical proving generic architecture
 - [x] **Self-Refine** — Iterative failure reflection (paper: Self-Refine)
 - [x] **Prompt Optimizer** — LLM classification auto-improves (paper: DSPy)
+- [x] **VialOS Beta** — `--beta` flag for VialOS Runtime integration
+- [ ] **Budget Intelligence** — Predict agent task costs from Gene Map history (v3)
+- [ ] **Gene Registry Cloud** — Shared knowledge across agents (PostgreSQL)
 - [ ] **Executable Strategy Gen** — LLM generates runnable fix code (paper: DYSTIL)
 - [ ] **CI/CD Adapter** — Third vertical: deploy failures, flaky tests
-- [ ] **Gene Registry** — Shared knowledge across agents (network effect)
 - [ ] **arXiv Paper** — "Vial: A Self-Evolving Repair Framework for Autonomous Agents"
-- [ ] **PostgreSQL + pgvector** — Scale beyond SQLite
 
 ## Research
 
@@ -243,7 +261,7 @@ git clone https://github.com/adrianhihi/helix
 cd helix
 npm install
 npm run build
-npm run test   # 541+ tests should pass
+npm run test   # 526+ tests should pass
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
