@@ -7,9 +7,10 @@ describe('Token Cost Calculator', () => {
     expect(cost).toBeCloseTo(0.06, 4);
   });
 
-  it('calculates Claude Haiku cost', () => {
-    const cost = calculateCost({ inputTokens: 10000, outputTokens: 2000, model: 'claude-haiku-3-5-20241022' });
-    expect(cost).toBeCloseTo(0.016, 4);
+  it('calculates Claude Opus cost', () => {
+    const cost = calculateCost({ inputTokens: 10000, outputTokens: 2000, model: 'claude-opus-4-6-20260401' });
+    // 10000*15/1M + 2000*75/1M = 0.15 + 0.15 = 0.30
+    expect(cost).toBeCloseTo(0.30, 4);
   });
 
   it('uses default for unknown models', () => {
