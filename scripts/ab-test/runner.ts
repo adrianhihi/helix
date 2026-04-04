@@ -29,13 +29,19 @@ if (durationArg) {
   if (match) testDurationMs = parseInt(match[1]) * (match[2] === 'h' ? 3600000 : 60000);
 }
 
-const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY || process.env.PRIVATE_KEY;
-if (!PRIVATE_KEY && !DRY_RUN) { console.error('ERROR: Set WALLET_PRIVATE_KEY or PRIVATE_KEY env var'); process.exit(1); }
+const KEY_A = process.env.WALLET_PRIVATE_KEY || process.env.PRIVATE_KEY;
+const KEY_B = process.env.WALLET_B_PRIVATE_KEY;
+if (!KEY_A && !DRY_RUN) { console.error('ERROR: Set WALLET_PRIVATE_KEY or PRIVATE_KEY env var'); process.exit(1); }
+if (!KEY_B && !DRY_RUN) { console.error('ERROR: Set WALLET_B_PRIVATE_KEY env var (run wallet setup first)'); process.exit(1); }
 
-const account = PRIVATE_KEY ? privateKeyToAccount(PRIVATE_KEY as `0x${string}`) : null;
+const accountA = KEY_A ? privateKeyToAccount(KEY_A as `0x${string}`) : null;
+const accountB = KEY_B ? privateKeyToAccount(KEY_B as `0x${string}`) : null;
 const publicClient = createPublicClient({ chain: base, transport: http(CONFIG.rpcUrl) });
-const walletClient = account ? createWalletClient({ account, chain: base, transport: http(CONFIG.rpcUrl) }) : null;
-const RECIPIENT = process.env.RECIPIENT || account?.address || '0x0000000000000000000000000000000000000000';
+const walletClientA = accountA ? createWalletClient({ account: accountA, chain: base, transport: http(CONFIG.rpcUrl) }) : null;
+const walletClientB = accountB ? createWalletClient({ account: accountB, chain: base, transport: http(CONFIG.rpcUrl) }) : null;
+// Control sends to B, Helix sends to A (cross-wallet transfers)
+const TARGET_A = accountB?.address || accountA?.address || '0x0000000000000000000000000000000000000000';
+const TARGET_B = accountA?.address || '0x0000000000000000000000000000000000000000';
 
 const results: TransactionRecord[] = [];
 fs.mkdirSync(CONFIG.outputDir, { recursive: true });
@@ -72,9 +78,11 @@ function classifyError(msg: string): string {
 }
 
 function makeRecord(group: 'control' | 'helix', failure: string): TransactionRecord {
+  const from = group === 'control' ? accountA?.address || '0x' : accountB?.address || '0x';
+  const to = group === 'control' ? TARGET_A : TARGET_B;
   return {
     id: randomUUID(), group, timestamp: new Date().toISOString(),
-    txHash: null, blockNumber: null, from: account?.address || '0x', to: RECIPIENT,
+    txHash: null, blockNumber: null, from, to,
     value: parseEther(CONFIG.transferAmountETH).toString(),
     injectedFailure: failure, success: false, errorMessage: null, errorType: null,
     repairStrategy: null, repairAttempts: 0, repairedTxHash: null,
@@ -100,12 +108,15 @@ async function sendTx(group: 'control' | 'helix', failure: string): Promise<Tran
     return r;
   }
 
-  // Build tx params with optional failure injection
-  const txBase: any = { to: RECIPIENT as `0x${string}`, value: parseEther(CONFIG.transferAmountETH) };
+  // Pick wallet + target per group
+  const activeWallet = group === 'control' ? walletClientA! : walletClientB!;
+  const activeAccount = group === 'control' ? accountA! : accountB!;
+  const target = (group === 'control' ? TARGET_A : TARGET_B) as `0x${string}`;
+  const txBase: any = { to: target, value: parseEther(CONFIG.transferAmountETH) };
 
   if (failure === 'low_gas') txBase.gas = 1n;
   else if (failure === 'wrong_nonce') {
-    const nonce = await publicClient.getTransactionCount({ address: account!.address });
+    const nonce = await publicClient.getTransactionCount({ address: activeAccount.address });
     txBase.nonce = Math.max(0, nonce - 2);
   } else if (failure === 'insufficient_balance') {
     txBase.value = parseEther('999999');
@@ -116,7 +127,7 @@ async function sendTx(group: 'control' | 'helix', failure: string): Promise<Tran
   if (group === 'control') {
     // Naive: send → if fail → blind retry once
     try {
-      const hash = await walletClient!.sendTransaction(txBase);
+      const hash = await activeWallet.sendTransaction(txBase);
       r.submitLatencyMs = Date.now() - submitStart;
       r.txHash = hash;
       const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 30_000 });
@@ -132,7 +143,7 @@ async function sendTx(group: 'control' | 'helix', failure: string): Promise<Tran
       r.errorType = classifyError(r.errorMessage);
       // Blind retry
       try {
-        const retryHash = await walletClient!.sendTransaction({ to: RECIPIENT as `0x${string}`, value: parseEther(CONFIG.transferAmountETH) });
+        const retryHash = await activeWallet.sendTransaction({ to: target, value: parseEther(CONFIG.transferAmountETH) });
         await publicClient.waitForTransactionReceipt({ hash: retryHash, timeout: 30_000 });
         r.repairedTxHash = retryHash;
         r.repairStrategy = 'blind_retry';
@@ -142,7 +153,7 @@ async function sendTx(group: 'control' | 'helix', failure: string): Promise<Tran
   } else {
     // Helix: send → if fail → PCEC repair → smart retry
     try {
-      const hash = await walletClient!.sendTransaction(txBase);
+      const hash = await activeWallet.sendTransaction(txBase);
       r.submitLatencyMs = Date.now() - submitStart;
       r.txHash = hash;
       const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 30_000 });
@@ -171,7 +182,7 @@ async function sendTx(group: 'control' | 'helix', failure: string): Promise<Tran
 
         if (strategy) {
           // Smart retry with fresh params (nonce deleted, gas auto-estimated)
-          const retryHash = await walletClient!.sendTransaction({ to: RECIPIENT as `0x${string}`, value: parseEther(CONFIG.transferAmountETH) });
+          const retryHash = await activeWallet.sendTransaction({ to: target, value: parseEther(CONFIG.transferAmountETH) });
           const retryReceipt = await publicClient.waitForTransactionReceipt({ hash: retryHash, timeout: 30_000 });
           if (retryReceipt.status === 'success') {
             r.success = true;
@@ -237,7 +248,7 @@ function generateReport(): TestSummary {
     },
     firstTxHash: hashes[0] || '', lastTxHash: hashes[hashes.length - 1] || '',
     blockRange: [blocks.length ? Math.min(...blocks) : 0, blocks.length ? Math.max(...blocks) : 0],
-    verificationUrl: `https://basescan.org/address/${account?.address || ''}`,
+    verificationUrl: `https://basescan.org/address/${accountA?.address || ''}`,
   };
 }
 
@@ -266,20 +277,28 @@ First tx: [${rpt.firstTxHash.slice(0, 16)}...](https://basescan.org/tx/${rpt.fir
 
 async function main() {
   console.log(`
-  ╔═══════════════════════════════════════════╗
-  ║  HELIX A/B TEST — Base Mainnet            ║
-  ╚═══════════════════════════════════════════╝
+  ╔═══════════════════════════════════════════════╗
+  ║  HELIX A/B TEST v2 — Base Mainnet             ║
+  ║  Dual Wallet (no nonce conflicts)              ║
+  ╚═══════════════════════════════════════════════╝
   Duration:  ${(testDurationMs / 3600000).toFixed(1)} hours
-  Interval:  ${CONFIG.intervalMs / 1000}s
+  Interval:  ${CONFIG.intervalMs / 1000}s per group
   Dry run:   ${DRY_RUN}
-  Wallet:    ${account?.address || 'DRY RUN'}
+  Wallet A (Control): ${accountA?.address || 'DRY RUN'}
+  Wallet B (Helix):   ${accountB?.address || 'DRY RUN'}
   Output:    ${CONFIG.outputDir}/
   `);
 
-  if (!DRY_RUN && account) {
-    const bal = await publicClient.getBalance({ address: account.address });
-    console.log(`  Balance:   ${formatEther(bal)} ETH\n`);
-    if (bal < parseEther('0.001')) { console.error('ERROR: Need >= 0.001 ETH'); process.exit(1); }
+  if (!DRY_RUN && accountA && accountB) {
+    const [balA, balB] = await Promise.all([
+      publicClient.getBalance({ address: accountA.address }),
+      publicClient.getBalance({ address: accountB.address }),
+    ]);
+    console.log(`  Balance A: ${formatEther(balA)} ETH`);
+    console.log(`  Balance B: ${formatEther(balB)} ETH\n`);
+    if (balA < parseEther('0.0005') || balB < parseEther('0.0005')) {
+      console.error('ERROR: Both wallets need at least 0.0005 ETH'); process.exit(1);
+    }
   }
 
   const startTime = Date.now();

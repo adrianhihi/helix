@@ -6,3 +6,4 @@ helix.config.json
 .DS_Store
 examples/e2e-agent/.env.test
 ab-test-results/
+ab-test-results-v2/

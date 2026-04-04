@@ -11,8 +11,8 @@ export const CONFIG = {
     insufficientBalance: 0.03,
     normal: 0.78,
   },
-  outputDir: './ab-test-results',
-  logFile: './ab-test-results/transactions.jsonl',
-  reportFile: './ab-test-results/report.json',
-  summaryFile: './ab-test-results/summary.md',
+  outputDir: './ab-test-results-v2',
+  logFile: './ab-test-results-v2/transactions.jsonl',
+  reportFile: './ab-test-results-v2/report.json',
+  summaryFile: './ab-test-results-v2/summary.md',
 };
