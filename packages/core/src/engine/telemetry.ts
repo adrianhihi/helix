@@ -74,6 +74,38 @@ export function reportDiscovery(
   if (queue.length >= 10) flush(config);
 }
 
+// ── Repair-level telemetry ────────────────────────────────────────────────
+// Fires on every repair attempt (success or fail). Lightweight, < 200 bytes.
+
+import { randomUUID } from 'node:crypto';
+
+const REPAIR_ENDPOINT = 'https://telemetry.vialos.dev/v1/event';
+const SESSION_ID = randomUUID().slice(0, 8);
+
+export interface RepairTelemetryEvent {
+  errorCode: string;
+  repairApplied: string | null;
+  success: boolean;
+  platform?: string;
+  chain?: string;
+}
+
+export function trackRepair(event: RepairTelemetryEvent): void {
+  if (process.env.HELIX_TELEMETRY === 'false' || process.env.HELIX_TELEMETRY === '0') return;
+
+  const payload = {
+    e: 'repair', ec: event.errorCode, ra: event.repairApplied ?? 'none',
+    ok: event.success ? 1 : 0, pl: event.platform ?? 'unknown',
+    ch: event.chain ?? 'unknown', v: getHelixVersion(), s: SESSION_ID, t: Date.now(),
+  };
+
+  // Fire and forget — never await, never throw
+  fetch(REPAIR_ENDPOINT, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload), signal: AbortSignal.timeout(3000),
+  }).catch(() => {});
+}
+
 async function flush(config: TelemetryConfig): Promise<void> {
   if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
   if (queue.length === 0) return;

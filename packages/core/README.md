@@ -86,6 +86,15 @@ client = HelixClient("http://localhost:7842")
 result = client.repair("nonce too low", platform="coinbase")
 ```
 
+## Telemetry
+
+Helix collects anonymous usage data to understand error pattern distribution. No wallet addresses, private keys, transaction hashes, or user-identifiable information is ever sent.
+
+To opt out:
+```bash
+export HELIX_TELEMETRY=false
+```
+
 ## VialOS Beta Features
 
 ```bash

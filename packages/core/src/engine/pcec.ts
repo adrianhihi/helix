@@ -606,6 +606,10 @@ export class PcecEngine {
     if (verified) {
       this.stats.repairs++;
       this.stats.savedRevenue += revenue;
+      // Telemetry: track successful repair
+      import('./telemetry.js').then(({ trackRepair }) => {
+        trackRepair({ errorCode: failure.code, repairApplied: winner.strategy, success: true, platform: failure.platform, chain: (context?.chainId as number)?.toString() });
+      }).catch(() => {});
       // DSPy: update LLM classification outcome
       if (failure.llmClassified) {
         this.promptOptimizer.updateOutcome(error.message, winner.strategy, true);
@@ -722,6 +726,10 @@ export class PcecEngine {
 
     // Verify failed
     recordAttempt(refineCtx, winner.strategy, true, commitResult.description, Date.now() - start);
+    // Telemetry: track failed repair
+    import('./telemetry.js').then(({ trackRepair }) => {
+      trackRepair({ errorCode: failure.code, repairApplied: winner.strategy, success: false, platform: failure.platform, chain: (context?.chainId as number)?.toString() });
+    }).catch(() => {});
     // DSPy: update LLM classification outcome
     if (failure.llmClassified) {
       this.promptOptimizer.updateOutcome(error.message, winner.strategy, false);

@@ -1,6 +1,10 @@
 // ── Public API ──
 export { wrap, createEngine, shutdown } from './engine/wrap.js';
 
+// ── Telemetry ──
+export { trackRepair } from './engine/telemetry.js';
+export type { RepairTelemetryEvent } from './engine/telemetry.js';
+
 // ── Prompt Optimizer (DSPy) ──
 export { PromptOptimizer } from './engine/prompt-optimizer.js';
 export type { ClassificationRecord, FewShotExample } from './engine/prompt-optimizer.js';
