@@ -1,0 +1,7 @@
+name = "helix-telemetry"
+main = "telemetry-worker.js"
+compatibility_date = "2026-04-06"
+
+[[kv_namespaces]]
+binding = "HELIX_TELEMETRY"
+id = "00a7921adaff4d178165fa5fddd737fe"

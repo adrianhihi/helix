@@ -79,7 +79,7 @@ export function reportDiscovery(
 
 import { randomUUID } from 'node:crypto';
 
-const REPAIR_ENDPOINT = 'https://telemetry.vialos.dev/v1/event';
+const REPAIR_ENDPOINT = 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event';
 const SESSION_ID = randomUUID().slice(0, 8);
 
 export interface RepairTelemetryEvent {
