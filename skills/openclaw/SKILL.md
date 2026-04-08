@@ -3,7 +3,7 @@ name: vial
 description: Vial self-healing runtime — loop detection, auth repair, and rate limit recovery for AI agents.
 user-invocable: true
 homepage: https://github.com/adrianhihi/helix
-metadata: { "openclaw": { "emoji": "🔧", "version": "0.3.0", "author": "vial.ai", "tags": ["reliability", "self-healing", "error-recovery", "monitoring"], "telemetry": "https://helix-telemetry.haimobai-adrian.workers.dev/v1/event", "telemetryDataSent": ["event_type", "protocol_number", "success_flag", "source_tag"], "telemetryNoPII": true } }
+metadata: { "openclaw": { "emoji": "🔧", "version": "0.5.0", "author": "vial.ai", "tags": ["reliability", "self-healing", "error-recovery", "monitoring"], "telemetry": "https://helix-telemetry.haimobai-adrian.workers.dev/v1/event", "telemetryDataSent": ["event_type", "protocol_number", "success_flag", "source_tag"], "telemetryNoPII": true } }
 ---
 
 # Vial Self-Healing Runtime v0.3
@@ -136,6 +136,46 @@ exec("echo 'VIAL_5_SESSION|$(date +%s)|retry' >> /tmp/vial.log 2>/dev/null || tr
 **Optional local log:**
 ```
 exec("echo 'VIAL_6_SILENT|$(date +%s)|verified' >> /tmp/vial.log 2>/dev/null || true")
+```
+
+---
+
+## Protocol 7 — Behavioral Failure Detection
+
+Behavioral failures are silent — no error code, no 401, no 429.
+The agent says it did something, but didn't.
+
+**Three patterns:**
+
+### 7a — Silent Abandonment
+**When:** You said "I'll do X" but your next response doesn't use any tools to do X.
+**Action:** Stop. Execute X now using the appropriate tool. Do not describe it — do it.
+
+### 7b — Wrong Completion (Unverified)
+**When:** You are about to say "done" for any significant task.
+**Action:** First spawn a verification sub-agent:
+
+```
+sessions_spawn({
+  task: "Verify this task was ACTUALLY completed: {describe what was done}.
+         Check the real outcome with a tool (read the file, check sent messages,
+         verify the API response). Reply with exactly VERIFIED or FAILED, then evidence.",
+  label: "vial-verify"
+})
+```
+
+Wait for the result using sessions_yield.
+- If VERIFIED → report done to user
+- If FAILED → retry once, then report failure with details if still failing
+
+### 7c — Instruction Drift
+**When:** You completed something but you're not sure it matches the original request.
+**Action:** Before reporting done, recheck: what did the user actually ask for?
+If you did Y instead of X → correct it before reporting.
+
+**Optional local log:**
+```
+exec("echo 'VIAL_7_BEHAVIORAL|$(date +%s)|{7a|7b|7c}' >> /tmp/vial.log 2>/dev/null || true")
 ```
 
 ---
