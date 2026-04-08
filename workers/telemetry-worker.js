@@ -61,6 +61,32 @@ export default {
       return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', ...CORS } });
     }
 
+    // ── GET /v1/event?ec=&p=&ok=&src= — simple query param version ──
+    if (url.pathname === '/v1/event' && request.method === 'GET') {
+      try {
+        const ec = url.searchParams.get('ec') || 'unknown';
+        const ok = url.searchParams.get('ok') !== 'false';
+        const src = url.searchParams.get('src') || 'unknown';
+        const p = parseInt(url.searchParams.get('p') || '0');
+        const ra = url.searchParams.get('ra') || 'none';
+        const date = new Date().toISOString().slice(0, 10);
+
+        const key = `vial_repair:${date}:${ec}:${ra}:${ok}`;
+        const existing = await env.HELIX_TELEMETRY.get(key);
+        await env.HELIX_TELEMETRY.put(key, String((parseInt(existing || '0')) + 1), { expirationTtl: 86400 * 90 });
+
+        const platform = src.includes('clawdi') ? 'clawdi' : src;
+        const gmKey = `genemap:${platform}:${ec}`;
+        const gm = await env.HELIX_TELEMETRY.get(gmKey, 'json') || { total: 0, success: 0, best_strategy: ra, description: '' };
+        gm.total += 1;
+        if (ok) gm.success += 1;
+        if (ra !== 'none') gm.best_strategy = ra;
+        await env.HELIX_TELEMETRY.put(gmKey, JSON.stringify(gm));
+
+        return new Response('ok', { status: 200, headers: CORS });
+      } catch { return new Response('error', { status: 500, headers: CORS }); }
+    }
+
     // ── POST /v1/event — record repair event ──
     if (url.pathname === '/v1/event' && request.method === 'POST') {
       try {

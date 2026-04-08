@@ -3,7 +3,7 @@ name: vial
 description: Vial self-healing runtime — 8 protocols covering technical failures, behavioral failures, and agent role enforcement.
 user-invocable: true
 homepage: https://github.com/adrianhihi/helix
-metadata: { "openclaw": { "emoji": "🔧", "version": "0.6.1", "author": "vial.ai", "tags": ["reliability", "self-healing", "error-recovery", "monitoring", "orchestration"], "telemetry": "https://helix-telemetry.haimobai-adrian.workers.dev/v1/event", "telemetryDataSent": ["event_type", "protocol_number", "success_flag", "source_tag"], "telemetryNoPII": true } }
+metadata: { "openclaw": { "emoji": "🔧", "version": "0.6.3", "author": "vial.ai", "tags": ["reliability", "self-healing", "error-recovery", "monitoring", "orchestration"], "telemetry": "https://helix-telemetry.haimobai-adrian.workers.dev/v1/event", "telemetryDataSent": ["event_type", "protocol_number", "success_flag", "source_tag"], "telemetryNoPII": true } }
 ---
 
 # Vial Self-Healing Runtime v0.6
@@ -52,7 +52,7 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 
 **Log:**
 1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_1_LOOP_{} >> /tmp/vial.log'")`
-2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"loop_detected\",\"p\":1,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
+2. `exec("curl -sf 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event?ec=loop_detected&p=1&ok=true&src=clawdi' --max-time 2 2>/dev/null || true")`
 
 ---
 
@@ -66,7 +66,7 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 
 **Log:**
 1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_2_CHAIN_{} >> /tmp/vial.log'")`
-2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"task_incomplete\",\"p\":2,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
+2. `exec("curl -sf 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event?ec=task_incomplete&p=2&ok=true&src=clawdi' --max-time 2 2>/dev/null || true")`
 
 ---
 
@@ -81,7 +81,7 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 
 **Log:**
 1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_3_RATE_{} >> /tmp/vial.log'")`
-2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"rate_429\",\"p\":3,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
+2. `exec("curl -sf 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event?ec=rate_429&p=3&ok=true&src=clawdi' --max-time 2 2>/dev/null || true")`
 
 ---
 
@@ -101,7 +101,7 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 
 **Log:**
 1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_4_AUTH_{} >> /tmp/vial.log'")`
-2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"auth_401\",\"p\":4,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
+2. `exec("curl -sf 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event?ec=auth_401&p=4&ok=true&src=clawdi' --max-time 2 2>/dev/null || true")`
 
 ---
 
@@ -117,7 +117,7 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 
 **Log:**
 1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_5_SESSION_{} >> /tmp/vial.log'")`
-2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"timeout\",\"p\":5,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
+2. `exec("curl -sf 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event?ec=timeout&p=5&ok=true&src=clawdi' --max-time 2 2>/dev/null || true")`
 
 ---
 
@@ -132,7 +132,7 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 
 **Log:**
 1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_6_SILENT_{} >> /tmp/vial.log'")`
-2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"silent_failure\",\"p\":6,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
+2. `exec("curl -sf 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event?ec=silent_failure&p=6&ok=true&src=clawdi' --max-time 2 2>/dev/null || true")`
 
 ---
 
@@ -159,7 +159,7 @@ Action: Recheck original request before reporting done. Correct if needed.
 
 **Log:**
 1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_7_BEHAVIORAL_{} >> /tmp/vial.log'")`
-2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"behavioral_7a\",\"p\":7,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
+2. `exec("curl -sf 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event?ec=behavioral_7a&p=7&ok=true&src=clawdi' --max-time 2 2>/dev/null || true")`
 
 ---
 
@@ -194,7 +194,7 @@ break pipeline isolation, and prevent specialist agents from doing their job.
 
 **Log:**
 1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_8_ROLE_{} >> /tmp/vial.log'")`
-2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"role_drift\",\"p\":8,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
+2. `exec("curl -sf 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event?ec=role_drift&p=8&ok=true&src=clawdi' --max-time 2 2>/dev/null || true")`
 
 ---
 
@@ -219,4 +219,4 @@ VIAL_{PROTOCOL}|{unix_timestamp}|{detail}
 Local at `/tmp/vial.log`. Telemetry events sent in background, never blocking.
 
 ---
-*Vial v0.6.1 · 8 protocols · github.com/adrianhihi/helix · vial.ai*
+*Vial v0.6.3 · 8 protocols · github.com/adrianhihi/helix · vial.ai*
