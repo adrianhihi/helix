@@ -1,0 +1,153 @@
+{
+  "experiment": "Experiment 7 \u2014 LLM vs PCEC Error Classification",
+  "date": "April 2026",
+  "llm_results": {
+    "model": "gpt-4o",
+    "timestamp": "2026-04-08T22:49:21.361354",
+    "total": 10,
+    "correct": 8,
+    "accuracy": 0.8,
+    "results": [
+      {
+        "id": "E01",
+        "raw_message": "execution reverted: Transaction too old",
+        "correct_class": "expired_deadline",
+        "llm_class": "expired_deadline",
+        "llm_confidence": 0.95,
+        "llm_fix": "Increase the deadline parameter in the transaction to allow more time for its execution.",
+        "llm_reasoning": "The error message 'Transaction too old' indicates that the transaction deadline has passed, causing it to be rejected.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E02",
+        "raw_message": "execution reverted: Too little received",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.95,
+        "llm_fix": "Increase the slippage tolerance parameter in the transaction settings.",
+        "llm_reasoning": "The error 'Too little received' indicates that the amount of tokens received was below the minimum amount expected, which is commonly due to a slippage tolerance set too tight.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E03",
+        "raw_message": "execution reverted",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.6,
+        "llm_fix": "Inspect the smart contract code and transaction parameters to identify the exact cause of the revert.",
+        "llm_reasoning": "The error 'execution reverted' is a generic message indicating that the smart contract logic explicitly caused the transaction to revert, and without additional context or logs, it is not possible to determine the exact cause.",
+        "correct": false,
+        "note": "This is the hardest case \u2014 LLMs default to guessing gas"
+      },
+      {
+        "id": "E04",
+        "raw_message": "ERC20: transfer amount exceeds allowance",
+        "correct_class": "missing_allowance",
+        "llm_class": "missing_allowance",
+        "llm_confidence": 1.0,
+        "llm_fix": "Increase the allowance amount by approving a higher amount of tokens for the transaction.",
+        "llm_reasoning": "The error message indicates that the tokens being transferred exceed the permitted allowance, which means that the allowance must be increased for the transaction to proceed.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E05",
+        "raw_message": "execution reverted: STF",
+        "correct_class": "missing_allowance",
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.9,
+        "llm_fix": "Increase the slippage tolerance parameter in your transaction settings.",
+        "llm_reasoning": "STF stands for 'Slippage Tolerance Failed', indicating that the price movement exceeded the allowed slippage set by the user.",
+        "correct": false,
+        "note": "STF is opaque. LLMs rarely know this Uniswap error code"
+      },
+      {
+        "id": "E06",
+        "raw_message": "execution reverted: SPL",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.9,
+        "llm_fix": "Increase the allowed slippage percentage when executing the swap.",
+        "llm_reasoning": "The abbreviation 'SPL' often refers to 'slippage,' indicating that the transaction failed due to the price moving beyond an acceptable range during a swap.",
+        "correct": true,
+        "note": "SPL is opaque. LLMs rarely know this Uniswap error code"
+      },
+      {
+        "id": "E07",
+        "raw_message": "nonce too low",
+        "correct_class": "nonce_conflict",
+        "llm_class": "nonce_conflict",
+        "llm_confidence": 1.0,
+        "llm_fix": "Increase the nonce value to match the current transaction count for your address.",
+        "llm_reasoning": "The error 'nonce too low' indicates that the transaction nonce does not match the expected account nonce, often because it is outdated due to previous transactions being processed.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E08",
+        "raw_message": "replacement transaction underpriced",
+        "correct_class": "nonce_conflict",
+        "llm_class": "nonce_conflict",
+        "llm_confidence": 0.9,
+        "llm_fix": "Increase the gas price to be higher than the previous transaction's gas price.",
+        "llm_reasoning": "The error indicates that the new transaction has the same nonce as a pending transaction, but with a lower gas price, requiring a higher gas price to replace it.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E09",
+        "raw_message": "execution reverted: UniswapV3Pool: SPL",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.95,
+        "llm_fix": "Increase the slippage tolerance parameter slightly in your transaction settings.",
+        "llm_reasoning": "The error 'UniswapV3Pool: SPL' indicates that the transaction failed due to slippage protection limits being exceeded, meaning the price changed more than allowed during the transaction execution.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E10",
+        "raw_message": "execution reverted: UniswapV3: LOK",
+        "correct_class": "reentrancy_lock",
+        "llm_class": "reentrancy_lock",
+        "llm_confidence": 0.95,
+        "llm_fix": "Ensure that the transaction design doesn't involve recursion or nested calls to the same contract.",
+        "llm_reasoning": "The error message 'UniswapV3: LOK' indicates a reentrancy lock, suggesting an attempt to make a recursive call within a single transaction.",
+        "correct": true,
+        "note": "Almost no LLM knows this one"
+      }
+    ],
+    "failures": [
+      {
+        "id": "E03",
+        "raw_message": "execution reverted",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.6,
+        "llm_fix": "Inspect the smart contract code and transaction parameters to identify the exact cause of the revert.",
+        "llm_reasoning": "The error 'execution reverted' is a generic message indicating that the smart contract logic explicitly caused the transaction to revert, and without additional context or logs, it is not possible to determine the exact cause.",
+        "correct": false,
+        "note": "This is the hardest case \u2014 LLMs default to guessing gas"
+      },
+      {
+        "id": "E05",
+        "raw_message": "execution reverted: STF",
+        "correct_class": "missing_allowance",
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.9,
+        "llm_fix": "Increase the slippage tolerance parameter in your transaction settings.",
+        "llm_reasoning": "STF stands for 'Slippage Tolerance Failed', indicating that the price movement exceeded the allowed slippage set by the user.",
+        "correct": false,
+        "note": "STF is opaque. LLMs rarely know this Uniswap error code"
+      }
+    ]
+  },
+  "comparison": {
+    "llm_accuracy": 0.8,
+    "pcec_accuracy": 1.0,
+    "gap": 0.19999999999999996,
+    "llm_model": "gpt-4o"
+  }
+}

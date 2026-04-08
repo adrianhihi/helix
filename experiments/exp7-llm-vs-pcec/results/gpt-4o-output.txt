@@ -1,0 +1,65 @@
+/Users/haimo/Projects/helix/experiments/exp7-llm-vs-pcec/llm_classifier.py:104: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+/Users/haimo/Projects/helix/experiments/exp7-llm-vs-pcec/llm_classifier.py:136: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "date": datetime.utcnow().strftime("%B %Y"),
+
+============================================================
+Experiment 7: LLM Error Classification
+Model: gpt-4o
+Errors: 10
+============================================================
+
+Testing E01: execution reverted: Transaction too old...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7KWgdXSLhEoMjeqSoo'}
+Testing E02: execution reverted: Too little received...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7KXmN9rDc7R7s8bgFB'}
+Testing E03: execution reverted...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7KYsbdMMfieBNtQCXz'}
+Testing E04: ERC20: transfer amount exceeds allowance...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7KZiCau5y3Awyv5z1o'}
+Testing E05: execution reverted: STF...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7Kb72xsccY3Yufkp8P'}
+Testing E06: execution reverted: SPL...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7KbsRR4oBWjcSvn7Fw'}
+Testing E07: nonce too low...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7Kcj24yY9QQvW6TDn9'}
+Testing E08: replacement transaction underpriced...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7Kdio8zgaL4PPr4X1Y'}
+Testing E09: execution reverted: UniswapV3Pool: SPL...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7KeUwLNXdghDfQdge4'}
+Testing E10: execution reverted: UniswapV3: LOK...
+  ERROR: Error code: 404 - {'type': 'error', 'error': {'type': 'not_found_error', 'message': 'model: gpt-4o'}, 'request_id': 'req_011CZs7KfZRpv4paG9FQ2AAd'}
+
+============================================================
+RESULTS: 0/10 correct = 0% accuracy
+============================================================
+
+Misclassified (10):
+  E01: got 'error', should be 'expired_deadline'
+  E02: got 'error', should be 'slippage_too_tight'
+  E03: got 'error', should be 'slippage_too_tight'
+  E04: got 'error', should be 'missing_allowance'
+  E05: got 'error', should be 'missing_allowance'
+  E06: got 'error', should be 'slippage_too_tight'
+  E07: got 'error', should be 'nonce_conflict'
+  E08: got 'error', should be 'nonce_conflict'
+  E09: got 'error', should be 'slippage_too_tight'
+  E10: got 'error', should be 'reentrancy_lock'
+
+============================================================
+COMPARISON: LLM vs PCEC
+============================================================
+LLM (gpt-4o):  0% (0/10)
+PCEC (Helix):               100% (18/18 from Experiments 2-6)
+
+Accuracy gap: 100%
+
+Results saved to experiments/exp7-llm-vs-pcec/results/gpt-4o.json
+
+============================================================
+TABLE FOR BLOG:
+============================================================
+| Method | Correct | Accuracy |
+|--------|---------|----------|
+| LLM (gpt-4o) | 0/10 | 0% |
+| PCEC (Helix) | 18/18 | 100% |

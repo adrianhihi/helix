@@ -9,6 +9,7 @@ import os
 import sys
 from datetime import datetime
 from anthropic import Anthropic
+from openai import OpenAI
 
 with open("experiments/exp7-llm-vs-pcec/error-dataset.json") as f:
     DATASET = json.load(f)["errors"]
@@ -26,17 +27,29 @@ Respond in this exact JSON format:
 
 
 def classify_with_llm(error_msg: str, model: str = "claude-opus-4-6") -> dict:
-    client = Anthropic()
-    response = client.messages.create(
-        model=model,
-        max_tokens=256,
-        system=SYSTEM_PROMPT,
-        messages=[{
-            "role": "user",
-            "content": f'The transaction failed with this error:\n\n"{error_msg}"\n\nClassify this error and describe the fix.'
-        }]
-    )
-    text = response.content[0].text.strip()
+    prompt = f'The transaction failed with this error:\n\n"{error_msg}"\n\nClassify this error and describe the fix.'
+
+    if model.startswith("gpt") or model.startswith("o1") or model.startswith("o3"):
+        client = OpenAI()
+        response = client.chat.completions.create(
+            model=model,
+            max_tokens=256,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        text = response.choices[0].message.content.strip()
+    else:
+        client = Anthropic()
+        response = client.messages.create(
+            model=model,
+            max_tokens=256,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = response.content[0].text.strip()
+
     if "```json" in text:
         text = text.split("```json")[1].split("```")[0].strip()
     elif "```" in text:
