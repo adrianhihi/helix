@@ -1,0 +1,12 @@
+{
+  "name": "@vial-agent/openclaw-hook",
+  "version": "0.1.0",
+  "description": "Vial self-healing hook for OpenClaw — gateway layer loop detection",
+  "main": "handler.ts",
+  "keywords": ["openclaw", "vial", "self-healing", "agent", "hook"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adrianhihi/helix"
+  }
+}
