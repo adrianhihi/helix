@@ -27,6 +27,52 @@ const BASELINE = {
   'behavioral_7b':   { strategy: 'spawn_verification',     confidence: 0.88, description: 'Unverified completion — spawn verification sub-agent' },
 };
 
+// ── Genemap schema helpers ──────────────────────────────────────────────
+//
+// Backward-compatible read of legacy `genemap:*` entries that don't yet
+// have a `strategies` field. We attribute the existing aggregate counts
+// (total/success) to whichever `best_strategy` was last recorded so no
+// signal is lost. New writes start populating per-strategy stats from
+// this point forward, and `best_strategy` is recomputed every event.
+function upgradeGenemap(gm, fallbackStrategy) {
+  if (!gm) {
+    return { total: 0, success: 0, strategies: {}, best_strategy: fallbackStrategy || 'none', description: '' };
+  }
+  if (!gm.strategies) {
+    const legacy = (gm.best_strategy && gm.best_strategy !== 'none') ? gm.best_strategy : (fallbackStrategy || 'unknown');
+    gm.strategies = { [legacy]: { total: gm.total || 0, success: gm.success || 0 } };
+  }
+  if (!gm.description) gm.description = '';
+  return gm;
+}
+
+// Pick best_strategy: highest success_rate among strategies with ≥3 samples.
+// Cold-start fallback: highest absolute success count if nothing has 3+ yet.
+function recomputeBestStrategy(gm) {
+  const entries = Object.entries(gm.strategies || {});
+  if (entries.length === 0) return gm.best_strategy || 'none';
+  const eligible = entries.filter(([, s]) => (s.total || 0) >= 3);
+  if (eligible.length > 0) {
+    eligible.sort((a, b) => (b[1].success / b[1].total) - (a[1].success / a[1].total));
+    return eligible[0][0];
+  }
+  entries.sort((a, b) => (b[1].success || 0) - (a[1].success || 0));
+  return entries[0][0];
+}
+
+// Apply one event (strategy `ra`, success `ok`) to an in-memory genemap.
+function applyEvent(gm, ra, ok) {
+  gm.total = (gm.total || 0) + 1;
+  if (ok) gm.success = (gm.success || 0) + 1;
+  if (ra && ra !== 'none') {
+    if (!gm.strategies[ra]) gm.strategies[ra] = { total: 0, success: 0 };
+    gm.strategies[ra].total += 1;
+    if (ok) gm.strategies[ra].success += 1;
+  }
+  gm.best_strategy = recomputeBestStrategy(gm);
+  return gm;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -52,8 +98,15 @@ export default {
 
       let response;
       if (geneData) {
-        const successRate = geneData.success / geneData.total;
-        response = { strategy: geneData.best_strategy, confidence: parseFloat(successRate.toFixed(2)), based_on: geneData.total, description: geneData.description || baseline.description, source: 'gene_map', platform, ec };
+        // Confidence is the success rate of the *chosen* best_strategy,
+        // not the overall genemap aggregate. Falls back to the aggregate
+        // for legacy entries that haven't been upgraded yet.
+        const best = geneData.best_strategy;
+        const stratStats = geneData.strategies && geneData.strategies[best];
+        const successRate = (stratStats && stratStats.total > 0)
+          ? (stratStats.success / stratStats.total)
+          : (geneData.success / geneData.total);
+        response = { strategy: best, confidence: parseFloat(successRate.toFixed(2)), based_on: geneData.total, description: geneData.description || baseline.description, source: 'gene_map', platform, ec };
       } else {
         response = { strategy: baseline.strategy, confidence: baseline.confidence, based_on: 0, description: baseline.description, source: 'baseline', platform, ec };
       }
@@ -77,10 +130,9 @@ export default {
 
         const platform = src.includes('clawdi') ? 'clawdi' : src;
         const gmKey = `genemap:${platform}:${ec}`;
-        const gm = await env.HELIX_TELEMETRY.get(gmKey, 'json') || { total: 0, success: 0, best_strategy: ra, description: '' };
-        gm.total += 1;
-        if (ok) gm.success += 1;
-        if (ra !== 'none') gm.best_strategy = ra;
+        const stored = await env.HELIX_TELEMETRY.get(gmKey, 'json');
+        const gm = upgradeGenemap(stored, ra);
+        applyEvent(gm, ra, ok);
         await env.HELIX_TELEMETRY.put(gmKey, JSON.stringify(gm));
 
         return new Response('ok', { status: 200, headers: CORS });
@@ -112,10 +164,10 @@ export default {
           const platform = body.src || body.pl || 'unknown';
           const gmKey = `genemap:${platform}:${body.ec}`;
           try {
-            const gm = await env.HELIX_TELEMETRY.get(gmKey, 'json') || { total: 0, success: 0, best_strategy: ra, description: '' };
-            gm.total += 1;
-            if (body.ok === true || body.ok === 1) gm.success += 1;
-            if (ra !== 'none') gm.best_strategy = ra;
+            const stored = await env.HELIX_TELEMETRY.get(gmKey, 'json');
+            const gm = upgradeGenemap(stored, ra);
+            const eventOk = body.ok === true || body.ok === 1;
+            applyEvent(gm, ra, eventOk);
             await env.HELIX_TELEMETRY.put(gmKey, JSON.stringify(gm));
           } catch {}
         }
