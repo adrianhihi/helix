@@ -10,3 +10,6 @@ ab-test-results-v2/
 uniswap-ab-results/
 monad-ab-results/
 x402-v2-results/
+.env.save
+.wrangler/
+kv-keys.json
