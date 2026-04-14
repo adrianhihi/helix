@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@helix-agent/core?color=cb3837)](https://www.npmjs.com/package/@helix-agent/core)
 [![downloads](https://img.shields.io/npm/dw/@helix-agent/core?color=blue)](https://www.npmjs.com/package/@helix-agent/core)
-[![tests](https://img.shields.io/badge/tests-526%2B-brightgreen)](#)
+[![tests](https://img.shields.io/badge/tests-553%2B-brightgreen)](#)
 [![stars](https://img.shields.io/github/stars/adrianhihi/helix?style=flat&color=yellow)](https://github.com/adrianhihi/helix/stargazers)
 [![license](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/helix-agent-sdk?color=3776AB)](https://pypi.org/project/helix-agent-sdk/)
@@ -35,6 +35,13 @@ Error occurs → Perceive → Construct → Evaluate → Commit → Verify → G
 ```
 
 The fix is stored in the **Gene Map** — a SQLite knowledge base scored by reinforcement learning. Next time the same error hits any agent, it's fixed in under 1ms. No diagnosis, no LLM call, no cost.
+
+## Benchmarks
+
+- **1,083 Base Mainnet transactions** (12hr A/B test) — Helix: 99.9% vs blind retry: 81.9%
+- **5 frontier LLMs** (GPT-4o-mini, GPT-4o, Claude Opus 4.6, GPT-5.4-mini, GPT-5.4) tested on bare `execution reverted` — all failed. PCEC: 100%.
+- **Gene Map warm**: 2,140ms → 1.1ms, $0.49 → $0.00 per repair
+- Full eval harness: [experiments/](./experiments)
 
 ## Quick Start
 
@@ -212,7 +219,7 @@ Level 3: Architecture Evolution
 ## Stats
 
 ```
-526+ tests across 55 test files
+553+ tests across 59 files
 Schema v12 (auto-migrating)
 61 error patterns (40 payment + 21 API)
 21 API error patterns
@@ -225,7 +232,7 @@ Schema v12 (auto-migrating)
 - [x] **PCEC Engine** — 6-stage self-healing pipeline
 - [x] **Gene Map** — SQLite + Q-value reinforcement learning
 - [x] **Platform Adapters** — Coinbase, Tempo, Privy, Generic HTTP
-- [x] **Self-Evolution** — Meta-Learning, Self-Play, Federated, Gene Dream
+- [x] **Self-Evolution** — Meta-Learning, Self-Play, Gene Dream
 - [x] **Safety** — 7 constraints, adversarial defense, cost ceilings
 - [x] **CI/CD Integration** — `npx @helix-agent/core scan` for GitHub Actions
 - [x] **Vial Framework** — Generic core extracted (`@vial/core`)
@@ -234,7 +241,7 @@ Schema v12 (auto-migrating)
 - [x] **Prompt Optimizer** — LLM classification auto-improves (paper: DSPy)
 - [x] **VialOS Beta** — `--beta` flag for VialOS Runtime integration
 - [ ] **Budget Intelligence** — Predict agent task costs from Gene Map history (v3)
-- [ ] **Gene Registry Cloud** — Shared knowledge across agents (PostgreSQL)
+- [ ] **Gene Registry Cloud (Federated)** — Shared knowledge across agents (PostgreSQL)
 - [ ] **Executable Strategy Gen** — LLM generates runnable fix code (paper: DYSTIL)
 - [ ] **CI/CD Adapter** — Third vertical: deploy failures, flaky tests
 - [ ] **arXiv Paper** — "Vial: A Self-Evolving Repair Framework for Autonomous Agents"
@@ -261,7 +268,7 @@ git clone https://github.com/adrianhihi/helix
 cd helix
 npm install
 npm run build
-npm run test   # 526+ tests should pass
+npm run test   # 553+ tests should pass
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
