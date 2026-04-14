@@ -58,6 +58,7 @@
     "url": "https://github.com/adrianhihi/helix/issues"
   },
   "dependencies": {
+    "@vial-agent/gene-map": "*",
     "@vial-agent/runtime": "^0.1.0",
     "better-sqlite3": "^11.0.0",
     "viem": "^2.47.5",

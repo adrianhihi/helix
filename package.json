@@ -2,6 +2,7 @@
   "name": "helix-monorepo",
   "private": true,
   "workspaces": [
+    "packages/gene-map",
     "packages/vial-core",
     "packages/core",
     "packages/adapter-api",
