@@ -1,6 +1,6 @@
 {
   "experiment": "8 — On-Chain Wrong Fix vs Correct Fix",
-  "date": "2026-04-09T00:03:23.474Z",
+  "date": "2026-04-09T00:06:45.351Z",
   "wallet": "0xeAc23C24e4EEFcd8bB507b4ffD5fCf7B4c7882AB",
   "error_simulated": "E08 — replacement transaction underpriced",
   "llm_model": "gpt-4o-mini",
@@ -14,20 +14,20 @@
       "llm": {
         "success": false,
         "txHash": null,
-        "error": "nonce has already been used (transaction=\"0x02f87282210582045f836ddd00836ddd0082520894d296c79ef6d4a048c80293386a58fa15c6e658a98609184e72a00080c001a0ace9bd3da5b024a30e888c2b20743bcfc772a7cabe357bb2d3e9",
+        "error": "nonce has already been used (transaction=\"0x02f872822105820462836ddd00836ddd0082520894d296c79ef6d4a048c80293386a58fa15c6e658a98609184e72a00080c001a0a5e7c720d7faf9c565c77d4db8d31ff669d5b9008ff14e03211b",
         "label": "LLM-WRONG",
-        "nonce": 1119
+        "nonce": 1122
       },
       "pcec": {
         "success": true,
-        "txHash": "0x960ef167a6385d5c3d69aff356016f8ef24f8d616ae7b4e5f93478b1986d104b",
+        "txHash": "0x22a3f3a3ba129715140958e23d86cfd47638f0ff23032bbbe0224e247fc0b364",
         "error": null,
         "label": "PCEC-CORRECT",
-        "nonce": 1120,
+        "nonce": 1123,
         "gasPrice": "0.006 gwei",
         "gasUsed": 21000,
-        "blockNumber": 44451807,
-        "basescan": "https://basescan.org/tx/0x960ef167a6385d5c3d69aff356016f8ef24f8d616ae7b4e5f93478b1986d104b"
+        "blockNumber": 44451908,
+        "basescan": "https://basescan.org/tx/0x22a3f3a3ba129715140958e23d86cfd47638f0ff23032bbbe0224e247fc0b364"
       }
     },
     {
@@ -35,20 +35,20 @@
       "llm": {
         "success": false,
         "txHash": null,
-        "error": "nonce has already been used (transaction=\"0x02f872822105820460836ddd00836ddd0082520894d296c79ef6d4a048c80293386a58fa15c6e658a98609184e72a00080c001a0669de75eb327b651a4926b756b7f99fe00b1cb2af0856f2698eb",
+        "error": "nonce has already been used (transaction=\"0x02f872822105820463836ddd00836ddd0082520894d296c79ef6d4a048c80293386a58fa15c6e658a98609184e72a00080c080a091f198d7e2031d0ca75bff60a4244c349f40dc8acc908036db40",
         "label": "LLM-WRONG",
-        "nonce": 1120
+        "nonce": 1123
       },
       "pcec": {
         "success": true,
-        "txHash": "0xb059b6f5def86f658365eaf43687388a4275db969d6efcc4edf2a2e5b418fd98",
+        "txHash": "0x0cc3c36c4c9d1985713be67f38ee8406dfaffe9d9a477941c5a19aaf641167c6",
         "error": null,
         "label": "PCEC-CORRECT",
-        "nonce": 1121,
+        "nonce": 1124,
         "gasPrice": "0.006 gwei",
         "gasUsed": 21000,
-        "blockNumber": 44451818,
-        "basescan": "https://basescan.org/tx/0xb059b6f5def86f658365eaf43687388a4275db969d6efcc4edf2a2e5b418fd98"
+        "blockNumber": 44451919,
+        "basescan": "https://basescan.org/tx/0x0cc3c36c4c9d1985713be67f38ee8406dfaffe9d9a477941c5a19aaf641167c6"
       }
     },
     {
@@ -56,20 +56,20 @@
       "llm": {
         "success": false,
         "txHash": null,
-        "error": "nonce has already been used (transaction=\"0x02f872822105820461836ddd00836ddd0082520894d296c79ef6d4a048c80293386a58fa15c6e658a98609184e72a00080c080a0e685506544cf39421a6a93332c28f80e72c55d8d0d98814cc1f1",
+        "error": "nonce has already been used (transaction=\"0x02f872822105820464836ddd00836ddd0082520894d296c79ef6d4a048c80293386a58fa15c6e658a98609184e72a00080c080a0d3d9a12f1edcf4c002accc0c9716566849076a4656534fb8f254",
         "label": "LLM-WRONG",
-        "nonce": 1121
+        "nonce": 1124
       },
       "pcec": {
         "success": true,
-        "txHash": "0xdb20669c6a2d6d84d80139b6ddc72e8227d884b9660c2ec0007ec0d93fbddda3",
+        "txHash": "0x4889eace3987f6297eeab05dbc54c07ce9d7a22dff5be3e28ae0fa294cc4fcca",
         "error": null,
         "label": "PCEC-CORRECT",
-        "nonce": 1122,
+        "nonce": 1125,
         "gasPrice": "0.006 gwei",
         "gasUsed": 21000,
-        "blockNumber": 44451827,
-        "basescan": "https://basescan.org/tx/0xdb20669c6a2d6d84d80139b6ddc72e8227d884b9660c2ec0007ec0d93fbddda3"
+        "blockNumber": 44451928,
+        "basescan": "https://basescan.org/tx/0x4889eace3987f6297eeab05dbc54c07ce9d7a22dff5be3e28ae0fa294cc4fcca"
       }
     }
   ],

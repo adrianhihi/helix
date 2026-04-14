@@ -1,0 +1,89 @@
+{
+  "experiment": "B",
+  "date": "2026-04-08T23:40:10.492225+00:00",
+  "bare": 0.9,
+  "cot": 1.0,
+  "pcec": 1.0,
+  "results": [
+    {
+      "id": "E01",
+      "correct": "expired_deadline",
+      "bare": "expired_deadline",
+      "cot": "expired_deadline",
+      "bare_ok": true,
+      "cot_ok": true
+    },
+    {
+      "id": "E02",
+      "correct": "slippage_too_tight",
+      "bare": "slippage_too_tight",
+      "cot": "slippage_too_tight",
+      "bare_ok": true,
+      "cot_ok": true
+    },
+    {
+      "id": "E03",
+      "correct": "slippage_too_tight",
+      "bare": "other",
+      "cot": "slippage_too_tight",
+      "bare_ok": false,
+      "cot_ok": true
+    },
+    {
+      "id": "E04",
+      "correct": "missing_allowance",
+      "bare": "missing_allowance",
+      "cot": "missing_allowance",
+      "bare_ok": true,
+      "cot_ok": true
+    },
+    {
+      "id": "E05",
+      "correct": "missing_allowance",
+      "bare": "missing_allowance",
+      "cot": "missing_allowance",
+      "bare_ok": true,
+      "cot_ok": true
+    },
+    {
+      "id": "E06",
+      "correct": "slippage_too_tight",
+      "bare": "slippage_too_tight",
+      "cot": "slippage_too_tight",
+      "bare_ok": true,
+      "cot_ok": true
+    },
+    {
+      "id": "E07",
+      "correct": "nonce_conflict",
+      "bare": "nonce_conflict",
+      "cot": "nonce_conflict",
+      "bare_ok": true,
+      "cot_ok": true
+    },
+    {
+      "id": "E08",
+      "correct": "nonce_conflict",
+      "bare": "nonce_conflict",
+      "cot": "nonce_conflict",
+      "bare_ok": true,
+      "cot_ok": true
+    },
+    {
+      "id": "E09",
+      "correct": "slippage_too_tight",
+      "bare": "slippage_too_tight",
+      "cot": "slippage_too_tight",
+      "bare_ok": true,
+      "cot_ok": true
+    },
+    {
+      "id": "E10",
+      "correct": "reentrancy_lock",
+      "bare": "reentrancy_lock",
+      "cot": "reentrancy_lock",
+      "bare_ok": true,
+      "cot_ok": true
+    }
+  ]
+}

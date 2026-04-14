@@ -1,0 +1,123 @@
+{
+  "experiment": "C",
+  "date": "2026-04-08T23:41:39.892549+00:00",
+  "theoretical_compounding": {
+    "gpt-4o-mini": {
+      "single": 0.5,
+      "three_step": 0.125
+    },
+    "gpt-4o": {
+      "single": 0.8,
+      "three_step": 0.5120000000000001
+    },
+    "claude-opus-4-6": {
+      "single": 0.9,
+      "three_step": 0.7290000000000001
+    },
+    "pcec": {
+      "single": 1.0,
+      "three_step": 1.0
+    }
+  },
+  "live_results": [
+    {
+      "scenario_id": "S1",
+      "name": "Swap\u2192Bridge\u2192Stake (common errors)",
+      "steps": [
+        {
+          "step": 1,
+          "step_name": "swap",
+          "error_id": "E01",
+          "correct": "expired_deadline",
+          "predicted": "expired_deadline",
+          "ok": true
+        },
+        {
+          "step": 2,
+          "step_name": "bridge",
+          "error_id": "E07",
+          "correct": "nonce_conflict",
+          "predicted": "nonce_conflict",
+          "ok": true
+        },
+        {
+          "step": 3,
+          "step_name": "stake",
+          "error_id": "E04",
+          "correct": "missing_allowance",
+          "predicted": "missing_allowance",
+          "ok": true
+        }
+      ],
+      "pipeline_success": true
+    },
+    {
+      "scenario_id": "S2",
+      "name": "Swap\u2192Bridge\u2192Stake (opaque errors)",
+      "steps": [
+        {
+          "step": 1,
+          "step_name": "swap",
+          "error_id": "E03",
+          "correct": "slippage_too_tight",
+          "predicted": "other",
+          "ok": false
+        },
+        {
+          "step": 2,
+          "step_name": "bridge",
+          "error_id": "E05",
+          "correct": "missing_allowance",
+          "predicted": "missing_allowance",
+          "ok": true
+        },
+        {
+          "step": 3,
+          "step_name": "stake",
+          "error_id": "E10",
+          "correct": "reentrancy_lock",
+          "predicted": "reentrancy_lock",
+          "ok": true
+        }
+      ],
+      "pipeline_success": false
+    },
+    {
+      "scenario_id": "S3",
+      "name": "Swap\u2192Bridge\u2192Stake (mixed)",
+      "steps": [
+        {
+          "step": 1,
+          "step_name": "swap",
+          "error_id": "E06",
+          "correct": "slippage_too_tight",
+          "predicted": "slippage_too_tight",
+          "ok": true
+        },
+        {
+          "step": 2,
+          "step_name": "bridge",
+          "error_id": "E08",
+          "correct": "nonce_conflict",
+          "predicted": "nonce_conflict",
+          "ok": true
+        },
+        {
+          "step": 3,
+          "step_name": "stake",
+          "error_id": "E03",
+          "correct": "slippage_too_tight",
+          "predicted": "other",
+          "ok": false
+        }
+      ],
+      "pipeline_success": false
+    }
+  ],
+  "summary": {
+    "steps_correct": 7,
+    "steps_total": 9,
+    "pipelines_succeeded": 1,
+    "pipelines_total": 3
+  }
+}

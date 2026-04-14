@@ -32,10 +32,12 @@
     "live": "tsx examples/demo/agent-simulator.ts"
   },
   "devDependencies": {
+    "openai": "^6.34.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0"
   },
   "dependencies": {
+    "@coinbase/cdp-sdk": "^1.46.1",
     "@coinbase/coinbase-sdk": "^0.25.0",
     "@privy-io/node": "^0.11.0"
   }
