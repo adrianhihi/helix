@@ -229,24 +229,28 @@ Schema v12 (auto-migrating)
 
 ## Roadmap
 
+### ✅ Phase 1 — Local procedural memory
 - [x] **PCEC Engine** — 6-stage self-healing pipeline
 - [x] **Gene Map** — SQLite + Q-value reinforcement learning
-- [x] **Platform Adapters** — Coinbase, Tempo, Privy, Generic HTTP
-- [x] **Self-Evolution** — Meta-Learning, Self-Play, Gene Dream
-- [x] **Safety** — 7 constraints, adversarial defense, cost ceilings
-- [x] **CI/CD Integration** — `npx @helix-agent/core scan` for GitHub Actions
-- [x] **Vial Framework** — Generic core extracted (`@vial/core`)
-- [x] **API Adapter** — Second vertical proving generic architecture
-- [x] **Self-Refine** — Iterative failure reflection (paper: Self-Refine)
-- [x] **Prompt Optimizer** — LLM classification auto-improves (paper: DSPy)
-- [x] **VialOS Beta** — `--beta` flag for VialOS Runtime integration
-- [x] **agentfolded** — One-command Vial skill deployment across Claude Code, Cursor, Codex CLI (published to ClawHub as vial-self-healing v0.6.3)
-- [x] **n8n Community Node** — n8n-nodes-vialos, MIT, npm v0.1.0, 8 error patterns
-- [ ] **Budget Intelligence** — /vial/budget/estimate endpoints (MVP done, productionization pending)
-- [ ] **Gene Registry Cloud (Federated)** — Shared knowledge across agents (PostgreSQL)
-- [ ] **Executable Strategy Gen** — LLM generates runnable fix code (paper: DYSTIL)
-- [ ] **CI/CD Adapter** — Third vertical: deploy failures, flaky tests
-- [ ] **arXiv Paper** — "Vial: A Self-Evolving Repair Framework for Autonomous Agents"
+- [x] **Platform adapters** — Coinbase, Tempo, Privy, generic HTTP, API errors
+- [x] **agentfolded** — One command deploys Vial across Claude Code, Cursor, Codex CLI
+- [x] **n8n community node** — Self-healing workflows, MIT, npm v0.1.0
+- [x] **Self-evolution** — Meta-Learning, Self-Play, Gene Dream, Prompt Optimizer
+
+### 🔄 Phase 2 — Cross-domain validation
+- [x] **Web2 microservices** — 91% autonomous resolution across 4 production-scale services, zero LLM calls
+- [x] **On-chain agents** — 99.9% vs 81.9% blind retry, 1,083 Base Mainnet transactions
+- [ ] **@vial-agent/gene-map** — Standalone package: same Gene Map substrate, any execution shape
+
+### 📅 Phase 3 — Team-level procedural memory
+- [ ] **Gene Registry Cloud** — Shared execution knowledge across agents and teams
+- [ ] **Budget Predictor** — Predict task cost from Gene Map history before execution
+- [ ] **CI/CD adapter** — Third vertical: deploy failures, flaky tests
+
+### 🔭 Phase 4 — Emergent knowledge
+- [ ] **Auto-generated runbooks** — Operational patterns that emerge from execution data
+- [ ] **Proactive suggestions** — Anticipate failures before they happen
+- [ ] **arXiv paper** — "Vial: Procedural Memory Infrastructure for Production AI Agents"
 
 ## Research
 
