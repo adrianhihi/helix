@@ -240,7 +240,9 @@ Schema v12 (auto-migrating)
 - [x] **Self-Refine** — Iterative failure reflection (paper: Self-Refine)
 - [x] **Prompt Optimizer** — LLM classification auto-improves (paper: DSPy)
 - [x] **VialOS Beta** — `--beta` flag for VialOS Runtime integration
-- [ ] **Budget Intelligence** — Predict agent task costs from Gene Map history (v3)
+- [x] **agentfolded** — One-command Vial skill deployment across Claude Code, Cursor, Codex CLI (published to ClawHub as vial-self-healing v0.6.3)
+- [x] **n8n Community Node** — n8n-nodes-vialos, MIT, npm v0.1.0, 8 error patterns
+- [ ] **Budget Intelligence** — /vial/budget/estimate endpoints (MVP done, productionization pending)
 - [ ] **Gene Registry Cloud (Federated)** — Shared knowledge across agents (PostgreSQL)
 - [ ] **Executable Strategy Gen** — LLM generates runnable fix code (paper: DYSTIL)
 - [ ] **CI/CD Adapter** — Third vertical: deploy failures, flaky tests
