@@ -296,6 +296,62 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
  </picture>
 </a>
 
+## FAQ
+
+### What is Helix?
+
+Helix is a **self-healing runtime for autonomous agents** — fix once, immune forever. It provides agent payment intelligence: predict costs, optimize execution, fix failures. Powered by [VialOS Runtime](https://github.com/adrianhihi/vialos-runtime).
+
+### How does the 6-stage pipeline work?
+
+| Stage | Action | Description |
+|-------|--------|-------------|
+| Perceive | What broke? | Error diagnosis |
+| Construct | Find fixes | Generate solutions |
+| Evaluate | Score them | Rank solutions |
+| Commit | Execute | Apply fix |
+| Verify | Worked? | Validate success |
+| Gene | Remember | Store in Gene Map |
+
+### What is the Gene Map?
+
+A SQLite knowledge base scored by reinforcement learning. When the same error hits again, it's fixed in under 1ms — no diagnosis, no LLM call, no cost.
+
+### How do I use Helix?
+
+```typescript
+import { wrap } from '@helix-agent/core';
+
+const safeCall = wrap(myFunction, { mode: 'auto' });
+const result = await safeCall(args);
+```
+
+### What are the benchmarks?
+
+| Benchmark | Result |
+|-----------|--------|
+| 1,083 Base Mainnet transactions (12hr A/B test) | Helix: 99.9% vs blind retry: 81.9% |
+| 5 frontier LLMs on `execution reverted` | All failed, PCEC: 100% |
+| Gene Map warm repair | 2,140ms → 1.1ms, $0.49 → $0.00 |
+
+### How do I install?
+
+```bash
+npm install @helix-agent/core
+# or
+pip install helix-agent-sdk
+```
+
+### Where can I find more info?
+
+- [npm: @helix-agent/core](https://www.npmjs.com/package/@helix-agent/core)
+- [PyPI: helix-agent-sdk](https://www.pypi.org/project/helix-agent-sdk/)
+- [Docker: adrianhihi/helix-server](https://hub.docker.com/r/adrianhihi/helix-server)
+
+### What license applies?
+
+MIT License.
+
 ## License
 
 MIT
